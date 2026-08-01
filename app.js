@@ -82,6 +82,9 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    // Check Shared Session from yundev.space
+    checkSharedSession();
+
     // Theme Toggle
     const themeBtn = document.getElementById("theme-toggle");
     themeBtn.addEventListener("click", () => {
@@ -583,6 +586,29 @@ function getSharedCookie(name) {
         const parts = v.split('=');
         return parts[0] === name ? decodeURIComponent(parts[1]) : r;
     }, '');
+}
+
+function checkSharedSession() {
+    const sessionToken = getSharedCookie('yundev_session');
+    const badgeContainer = document.getElementById("user-session-badge");
+    if (!badgeContainer) return;
+
+    if (sessionToken) {
+        badgeContainer.innerHTML = `
+            <span style="font-size: 0.75rem; font-weight: 700; color: #10b981; border: 1px solid #10b981; padding: 0.25rem 0.6rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 0.35rem; background: rgba(16, 185, 129, 0.1);">
+                <i data-lucide="user-check" style="width: 14px; height: 14px;"></i> Phiên đồng bộ (SSO)
+            </span>
+        `;
+    } else {
+        badgeContainer.innerHTML = `
+            <a href="https://yundev.space" style="font-size: 0.75rem; font-weight: 600; color: #a855f7; text-decoration: none; border: 1px solid rgba(168, 85, 247, 0.3); padding: 0.25rem 0.6rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 0.35rem; background: rgba(168, 85, 247, 0.08);" title="Đăng nhập tại yundev.space để đồng bộ tài khoản">
+                <i data-lucide="log-in" style="width: 14px; height: 14px;"></i> Đăng nhập yundev.space
+            </a>
+        `;
+    }
+    if (window.lucide) {
+        lucide.createIcons();
+    }
 }
 
 async function getSupabaseCredentials() {
