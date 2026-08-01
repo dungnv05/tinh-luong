@@ -585,14 +585,37 @@ function getSharedCookie(name) {
     }, '');
 }
 
+async function getSupabaseCredentials() {
+    let url = window.SUPABASE_URL || getSharedCookie('yundev_supabase_url') || "";
+    let key = window.SUPABASE_ANON_KEY || getSharedCookie('yundev_supabase_key') || "";
+
+    // Dynamic fallback to Vercel Serverless Function (/api/config) on Production
+    if (!url || !key || url.includes("your-project") || url.includes("abcdefghijklmnopqrst")) {
+        try {
+            const res = await fetch('/api/config');
+            if (res.ok) {
+                const data = await res.json();
+                if (data.supabaseUrl && data.supabaseAnonKey) {
+                    url = data.supabaseUrl;
+                    key = data.supabaseAnonKey;
+                    window.SUPABASE_URL = url;
+                    window.SUPABASE_ANON_KEY = key;
+                }
+            }
+        } catch (e) {
+            // Ignore API fetch errors
+        }
+    }
+
+    return { url, key };
+}
+
 async function saveSalaryToSupabase(item) {
-    // Read configuration from env.js or window or wildcard cookie
-    const supabaseUrl = window.SUPABASE_URL || getSharedCookie('yundev_supabase_url') || "";
-    const supabaseAnonKey = window.SUPABASE_ANON_KEY || getSharedCookie('yundev_supabase_key') || "";
+    const { url: supabaseUrl, key: supabaseAnonKey } = await getSupabaseCredentials();
     const sessionToken = getSharedCookie('yundev_session') || supabaseAnonKey;
 
     if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes("your-project") || supabaseUrl.includes("abcdefghijklmnopqrst")) {
-        console.info("ℹ️ Chưa điền cấu hình Supabase URL & Anon Key thực tế trong file env.js.");
+        console.info("ℹ️ Chưa điền cấu hình Supabase URL & Anon Key thực tế.");
         return;
     }
 
