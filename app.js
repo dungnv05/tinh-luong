@@ -578,9 +578,18 @@ function saveHistory() {
     localStorage.setItem("salary_history", JSON.stringify(calculationHistory));
 }
 
+function getSharedCookie(name) {
+    return document.cookie.split('; ').reduce((r, v) => {
+        const parts = v.split('=');
+        return parts[0] === name ? decodeURIComponent(parts[1]) : r;
+    }, '');
+}
+
 async function saveSalaryToSupabase(item) {
-    const supabaseUrl = window.SUPABASE_URL || localStorage.getItem('supabase_url') || "";
-    const supabaseAnonKey = window.SUPABASE_ANON_KEY || localStorage.getItem('supabase_anon_key') || "";
+    // Read shared session & configuration from wildcard cookie (.yundev.space)
+    const supabaseUrl = window.SUPABASE_URL || getSharedCookie('yundev_supabase_url') || "";
+    const supabaseAnonKey = window.SUPABASE_ANON_KEY || getSharedCookie('yundev_supabase_key') || "";
+    const sessionToken = getSharedCookie('yundev_session') || supabaseAnonKey;
 
     if (!supabaseUrl || !supabaseAnonKey) return;
 
@@ -590,7 +599,7 @@ async function saveSalaryToSupabase(item) {
             headers: {
                 'Content-Type': 'application/json',
                 'apikey': supabaseAnonKey,
-                'Authorization': `Bearer ${supabaseAnonKey}`,
+                'Authorization': `Bearer ${sessionToken}`,
                 'Prefer': 'return=minimal'
             },
             body: JSON.stringify({
@@ -600,9 +609,9 @@ async function saveSalaryToSupabase(item) {
                 net_salary: item.netVal
             })
         });
-        console.log("✅ Đã tự động lưu kết quả tính toán lên Supabase Database!");
+        console.log("✅ Đã tự động đồng bộ kết quả lên Supabase qua Shared Cookie (.yundev.space)!");
     } catch (err) {
-        console.warn("⚠️ Chưa thể lưu lên Supabase:", err);
+        console.warn("⚠️ Chưa thể đồng bộ Supabase:", err);
     }
 }
 
