@@ -578,6 +578,34 @@ function saveHistory() {
     localStorage.setItem("salary_history", JSON.stringify(calculationHistory));
 }
 
+async function saveSalaryToSupabase(item) {
+    const supabaseUrl = window.SUPABASE_URL || localStorage.getItem('supabase_url') || "";
+    const supabaseAnonKey = window.SUPABASE_ANON_KEY || localStorage.getItem('supabase_anon_key') || "";
+
+    if (!supabaseUrl || !supabaseAnonKey) return;
+
+    try {
+        await fetch(`${supabaseUrl}/rest/v1/salary_history`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'apikey': supabaseAnonKey,
+                'Authorization': `Bearer ${supabaseAnonKey}`,
+                'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify({
+                mode: item.mode,
+                input_salary: item.inputVal,
+                gross_salary: item.grossVal,
+                net_salary: item.netVal
+            })
+        });
+        console.log("✅ Đã tự động lưu kết quả tính toán lên Supabase Database!");
+    } catch (err) {
+        console.warn("⚠️ Chưa thể lưu lên Supabase:", err);
+    }
+}
+
 function addToHistory(item) {
     // Avoid exact duplicates at the top
     if (calculationHistory.length > 0 && 
@@ -593,6 +621,9 @@ function addToHistory(item) {
     }
     saveHistory();
     renderHistoryList();
+
+    // Auto sync to Supabase
+    saveSalaryToSupabase(item);
 }
 
 function clearHistory() {
