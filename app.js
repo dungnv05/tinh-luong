@@ -612,8 +612,8 @@ function checkSharedSession() {
 }
 
 async function getSupabaseCredentials() {
-    let url = window.SUPABASE_URL || getSharedCookie('yundev_supabase_url') || "";
-    let key = window.SUPABASE_ANON_KEY || getSharedCookie('yundev_supabase_key') || "";
+    let url = window.SUPABASE_URL || "";
+    let key = window.SUPABASE_ANON_KEY || "";
 
     // Dynamic fallback to Vercel Serverless Function (/api/config) on Production
     if (!url || !key || url.includes("your-project") || url.includes("abcdefghijklmnopqrst")) {
