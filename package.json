@@ -1,0 +1,9 @@
+{
+  "name": "web-app-tinh-luong",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Gross to Net Salary Calculator Vietnam",
+  "scripts": {
+    "build": "node build-env.js"
+  }
+}
