@@ -661,6 +661,19 @@ async function saveSalaryToSupabase(item) {
         return;
     }
 
+    // --- Input Validation & Sanitization (Bảo vệ tính toàn vẹn dữ liệu) ---
+    // Kiểm tra định dạng cơ bản: Chắc chắn các giá trị là số và hợp lý, chống Injection hoặc Data Overflow.
+    const inputVal = Number(item.inputVal);
+    const grossVal = Number(item.grossVal);
+    const netVal = Number(item.netVal);
+
+    if (isNaN(inputVal) || isNaN(grossVal) || isNaN(netVal) || inputVal < 0 || inputVal > 1000000000000) {
+        console.warn("⚠️ Dữ liệu tính toán không hợp lệ hoặc có dấu hiệu bất thường. Đã chặn lưu trữ.");
+        return;
+    }
+
+    const mode = (item.mode === "gross-to-net" || item.mode === "net-to-gross") ? item.mode : "unknown";
+
     try {
         console.log("🚀 Đang gửi dữ liệu tính toán lên Supabase Database...");
         const res = await fetch(`${supabaseUrl.replace(/\/$/, '')}/rest/v1/salary_history`, {
@@ -672,10 +685,10 @@ async function saveSalaryToSupabase(item) {
                 'Prefer': 'return=minimal'
             },
             body: JSON.stringify({
-                mode: item.mode,
-                input_salary: item.inputVal,
-                gross_salary: item.grossVal,
-                net_salary: item.netVal
+                mode: mode,
+                input_salary: inputVal,
+                gross_salary: grossVal,
+                net_salary: netVal
             })
         });
 
