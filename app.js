@@ -588,15 +588,31 @@ function getSharedCookie(name) {
     }, '');
 }
 
+function parseJwtPayload(token) {
+    try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        return JSON.parse(jsonPayload);
+    } catch (e) {
+        return null;
+    }
+}
+
 function checkSharedSession() {
     const sessionToken = getSharedCookie('yundev_session');
     const badgeContainer = document.getElementById("user-session-badge");
     if (!badgeContainer) return;
 
     if (sessionToken) {
+        const payload = parseJwtPayload(sessionToken);
+        const userEmail = payload?.email || "Đã đăng nhập";
+
         badgeContainer.innerHTML = `
-            <span style="font-size: 0.75rem; font-weight: 700; color: #10b981; border: 1px solid #10b981; padding: 0.25rem 0.6rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 0.35rem; background: rgba(16, 185, 129, 0.1);">
-                <i data-lucide="user-check" style="width: 14px; height: 14px;"></i> Phiên đồng bộ (SSO)
+            <span style="font-size: 0.75rem; font-weight: 700; color: #10b981; border: 1px solid #10b981; padding: 0.25rem 0.6rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 0.35rem; background: rgba(16, 185, 129, 0.1);" title="Tài khoản đã đăng nhập: ${userEmail}">
+                <i data-lucide="user-check" style="width: 14px; height: 14px;"></i> ${userEmail}
             </span>
         `;
     } else {
