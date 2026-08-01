@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tính Lương Gross sang Net & Net sang Gross (Cập Nhật 2026) | Chuẩn Quy Định Mới</title>
+    <meta name="description" content="Công cụ tính lương Gross sang Net và Net sang Gross chuẩn xác nhất, cập nhật mức lương cơ sở mới và lương tối thiểu vùng theo quy định mới nhất 2026.">
+    <!-- Google Fonts - Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- html2pdf.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="light-mode">
+    <header class="app-header">
+        <div class="header-container">
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <i data-lucide="wallet-cards"></i>
+                </div>
+                <div class="logo-text">
+                    <h1>SalaryFlow</h1>
+                    <span class="logo-subtext">Cơ Cấu Lương Việt Nam 2026</span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <a href="https://yundev.com" class="btn btn-outline" style="padding: 0.4rem 0.85rem; font-size: 0.8rem; text-decoration: none;" title="Về trang chủ YunDev.com">
+                    <i data-lucide="layout-grid"></i> YunDev.com
+                </a>
+                <button id="theme-toggle" class="btn-icon" title="Chuyển chế độ sáng/tối">
+                    <i data-lucide="moon" class="dark-icon"></i>
+                    <i data-lucide="sun" class="light-icon"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="app-container">
+        <div class="grid-layout">
+            <!-- Left Panel: Input Form -->
+            <section class="panel panel-input glass-card">
+                <div class="panel-header">
+                    <h2 class="panel-title"><i data-lucide="calculator"></i> Công cụ tính lương</h2>
+                    <p class="panel-subtitle">Điền thông tin thu nhập của bạn</p>
+                </div>
+
+                <div class="tab-container">
+                    <button id="tab-gross-net" class="tab-btn active" onclick="switchMode('gross-net')">
+                        <i data-lucide="arrow-right-left"></i> Gross &rarr; Net
+                    </button>
+                    <button id="tab-net-gross" class="tab-btn" onclick="switchMode('net-gross')">
+                        <i data-lucide="arrow-right-left"></i> Net &rarr; Gross
+                    </button>
+                </div>
+
+                <form id="salary-form" onsubmit="event.preventDefault(); calculate();">
+                    <!-- Income Input -->
+                    <div class="input-group">
+                        <label for="salary-input" id="salary-label">Lương Gross (VND)</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="salary-input" placeholder="Ví dụ: 20,000,000" required>
+                            <span class="input-suffix">đ</span>
+                        </div>
+                    </div>
+
+                    <!-- Regulation Period Selection -->
+                    <div class="input-group">
+                        <label for="period-select">Thời điểm áp dụng</label>
+                        <div class="select-wrapper">
+                            <select id="period-select" onchange="handlePeriodChange()">
+                                <option value="july-2026" selected>Từ 01/07/2026 (Lương cơ sở 2.530.000đ)</option>
+                                <option value="jan-2026">Từ 01/01/2026 - 30/06/2026 (Lương cơ sở 2.340.000đ)</option>
+                                <option value="prev-2026">Trước năm 2026 (Lương cơ sở 2.340.000đ, tối thiểu vùng cũ)</option>
+                            </select>
+                            <i data-lucide="chevron-down" class="select-arrow"></i>
+                        </div>
+                    </div>
+
+                    <!-- Region Selection -->
+                    <div class="input-group">
+                        <label for="region-select">Vùng lương tối thiểu</label>
+                        <div class="select-wrapper">
+                            <select id="region-select" onchange="handleRegionChange()">
+                                <option value="1">Vùng I (<span id="region-1-val">5.310.000đ</span>)</option>
+                                <option value="2">Vùng II (<span id="region-2-val">4.730.000đ</span>)</option>
+                                <option value="3">Vùng III (<span id="region-3-val">4.140.000đ</span>)</option>
+                                <option value="4">Vùng IV (<span id="region-4-val">3.700.000đ</span>)</option>
+                            </select>
+                            <i data-lucide="chevron-down" class="select-arrow"></i>
+                        </div>
+                        <p class="input-hint" id="region-hint">Dùng làm trần đóng Bảo hiểm thất nghiệp (20 lần lương tối thiểu vùng).</p>
+                    </div>
+
+                    <!-- Dependents -->
+                    <div class="input-group">
+                        <label for="dependents-input">Số người phụ thuộc</label>
+                        <div class="counter-wrapper">
+                            <button type="button" class="btn-counter" onclick="adjustDependents(-1)">-</button>
+                            <input type="number" id="dependents-input" min="0" value="0">
+                            <button type="button" class="btn-counter" onclick="adjustDependents(1)">+</button>
+                        </div>
+                        <p class="input-hint">Giảm trừ gia cảnh: 11.000.000đ bản thân + 4.400.000đ/người phụ thuộc.</p>
+                    </div>
+
+                    <!-- Insurance Scheme Selection -->
+                    <div class="input-group">
+                        <label>Đóng bảo hiểm dựa trên</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="insurance-type" value="actual" checked onchange="toggleCustomInsuranceInput(false)">
+                                <span class="radio-custom"></span>
+                                Trên lương thực tế
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="insurance-type" value="custom" onchange="toggleCustomInsuranceInput(true)">
+                                <span class="radio-custom"></span>
+                                Mức lương khác
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Custom Insurance Salary Input (hidden by default) -->
+                    <div class="input-group hidden" id="custom-insurance-container">
+                        <label for="custom-insurance-input">Lương đóng bảo hiểm (VND)</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="custom-insurance-input" placeholder="Ví dụ: 10,000,000">
+                            <span class="input-suffix">đ</span>
+                        </div>
+                    </div>
+
+                    <!-- Advanced Settings Toggle -->
+                    <div class="advanced-settings-header" onclick="toggleAdvancedSettings()">
+                        <span><i data-lucide="settings-2"></i> Tỷ lệ đóng bảo hiểm (%)</span>
+                        <i data-lucide="chevron-right" id="advanced-chevron"></i>
+                    </div>
+
+                    <div id="advanced-settings-body" class="advanced-settings-body hidden">
+                        <div class="advanced-grid">
+                            <div>
+                                <span class="group-title">Người lao động đóng</span>
+                                <div class="mini-input">
+                                    <label>BHXH</label>
+                                    <input type="number" step="0.1" id="rate-ee-bhxh" value="8">
+                                </div>
+                                <div class="mini-input">
+                                    <label>BHYT</label>
+                                    <input type="number" step="0.1" id="rate-ee-bhyt" value="1.5">
+                                </div>
+                                <div class="mini-input">
+                                    <label>BHTN</label>
+                                    <input type="number" step="0.1" id="rate-ee-bhtn" value="1">
+                                </div>
+                            </div>
+                            <div>
+                                <span class="group-title">Doanh nghiệp đóng</span>
+                                <div class="mini-input">
+                                    <label>BHXH</label>
+                                    <input type="number" step="0.1" id="rate-er-bhxh" value="17.5">
+                                </div>
+                                <div class="mini-input">
+                                    <label>BHYT</label>
+                                    <input type="number" step="0.1" id="rate-er-bhyt" value="3">
+                                </div>
+                                <div class="mini-input">
+                                    <label>BHTN</label>
+                                    <input type="number" step="0.1" id="rate-er-bhtn" value="1">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block"><i data-lucide="play"></i> Tính toán lương</button>
+                </form>
+            </section>
+
+            <!-- Right Panel: Results & Visualizations -->
+            <section class="panel panel-result glass-card">
+                <div class="panel-header">
+                    <h2 class="panel-title"><i data-lucide="file-text"></i> Kết quả chi tiết</h2>
+                    <div class="result-actions">
+                        <button type="button" class="btn btn-outline" id="btn-export-pdf" onclick="exportPDF()" disabled>
+                            <i data-lucide="download"></i> PDF
+                        </button>
+                    </div>
+                </div>
+
+                <div id="result-placeholder" class="result-placeholder">
+                    <div class="placeholder-icon"><i data-lucide="bar-chart-3"></i></div>
+                    <p>Nhấn nút "Tính toán lương" để xem cơ cấu chi tiết lương và phân tích chi phí doanh nghiệp.</p>
+                </div>
+
+                <div id="result-content" class="result-content hidden">
+                    <!-- Highlights -->
+                    <div class="highlight-cards">
+                        <div class="highlight-card main-highlight">
+                            <span class="card-label" id="card-main-label">Thực nhận (NET)</span>
+                            <span class="card-value" id="card-main-value">0đ</span>
+                        </div>
+                        <div class="highlight-card border-highlight">
+                            <span class="card-label">Chi phí doanh nghiệp</span>
+                            <span class="card-value" id="card-employer-value">0đ</span>
+                        </div>
+                    </div>
+
+                    <!-- Visualization -->
+                    <div class="visualization-area">
+                        <div class="chart-container">
+                            <canvas id="salary-chart"></canvas>
+                        </div>
+                        <div class="chart-legend" id="chart-legend">
+                            <!-- Custom interactive legends will be dynamically rendered here -->
+                        </div>
+                    </div>
+
+                    <!-- Details Sheet for Export -->
+                    <div id="exportable-sheet" class="exportable-sheet">
+                        <div class="export-header-info">
+                            <h3>BẢNG TÍNH CHI TIẾT THU NHẬP</h3>
+                            <span class="export-time" id="export-timestamp"></span>
+                        </div>
+                        
+                        <div class="sheet-section">
+                            <h4 class="section-title"><i data-lucide="user"></i> Bảng Lương Người Lao Động</h4>
+                            <table class="detail-table">
+                                <thead>
+                                    <tr>
+                                        <th>Mục lục chi tiết</th>
+                                        <th class="text-right">Số tiền (VND)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Lương GROSS</strong></td>
+                                        <td class="text-right text-bold" id="tbl-gross-val">0đ</td>
+                                    </tr>
+                                    <tr class="sub-row">
+                                        <td>Bảo hiểm xã hội (BHXH - 8%)</td>
+                                        <td class="text-right" id="tbl-ee-bhxh">0đ</td>
+                                    </tr>
+                                    <tr class="sub-row">
+                                        <td>Bảo hiểm y tế (BHYT - 1.5%)</td>
+                                        <td class="text-right" id="tbl-ee-bhyt">0đ</td>
+                                    </tr>
+                                    <tr class="sub-row">
+                                        <td>Bảo hiểm thất nghiệp (BHTN - 1%)</td>
+                                        <td class="text-right" id="tbl-ee-bhtn">0đ</td>
+                                    </tr>
+                                    <tr class="total-row">
+                                        <td>Thu nhập trước thuế (TNTT)</td>
+                                        <td class="text-right" id="tbl-tntt">0đ</td>
+                                    </tr>
+                                    <tr class="sub-row">
+                                        <td>Giảm trừ gia cảnh (bản thân)</td>
+                                        <td class="text-right" id="tbl-deduct-self">-11.000.000đ</td>
+                                    </tr>
+                                    <tr class="sub-row">
+                                        <td>Giảm trừ người phụ thuộc</td>
+                                        <td class="text-right" id="tbl-deduct-deps">0đ</td>
+                                    </tr>
+                                    <tr class="total-row">
+                                        <td>Thu nhập tính thuế TNCN</td>
+                                        <td class="text-right" id="tbl-taxable-income">0đ</td>
+                                    </tr>
+                                    <tr class="sub-row tax-highlight">
+                                        <td>Thuế thu nhập cá nhân (TNCN)</td>
+                                        <td class="text-right" id="tbl-pit">0đ</td>
+                                    </tr>
+                                    <tr class="grand-total-row">
+                                        <td><strong>Lương NET (Thực nhận)</strong></td>
+                                        <td class="text-right text-accent text-bold" id="tbl-net-val">0đ</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="sheet-section">
+                            <h4 class="section-title"><i data-lucide="building"></i> Chi Phí Doanh Nghiệp (Người sử dụng lao động)</h4>
+                            <table class="detail-table">
+                                <thead>
+                                    <tr>
+                                        <th>Mục chi phí đóng thêm</th>
+                                        <th class="text-right">Số tiền (VND)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Lương Gross nhân viên</strong></td>
+                                        <td class="text-right" id="tbl-er-gross">0đ</td>
+                                    </tr>
+                                    <tr class="sub-row">
+                                        <td>BHXH Doanh nghiệp đóng (<span id="rate-er-bhxh-label">17.5</span>%)</td>
+                                        <td class="text-right" id="tbl-er-bhxh">0đ</td>
+                                    </tr>
+                                    <tr class="sub-row">
+                                        <td>BHYT Doanh nghiệp đóng (<span id="rate-er-bhyt-label">3</span>%)</td>
+                                        <td class="text-right" id="tbl-er-bhyt">0đ</td>
+                                    </tr>
+                                    <tr class="sub-row">
+                                        <td>BHTN Doanh nghiệp đóng (<span id="rate-er-bhtn-label">1</span>%)</td>
+                                        <td class="text-right" id="tbl-er-bhtn">0đ</td>
+                                    </tr>
+                                    <tr class="grand-total-row">
+                                        <td><strong>Tổng chi phí của Doanh nghiệp</strong></td>
+                                        <td class="text-right text-bold" id="tbl-er-total">0đ</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- PIT Steps Breakdown -->
+                        <div class="sheet-section" id="pit-steps-section">
+                            <h4 class="section-title"><i data-lucide="list-ordered"></i> Chi Tiết Các Bậc Thuế TNCN Khấu Trừ</h4>
+                            <div class="pit-steps-container" id="pit-steps-container">
+                                <!-- Steps will be rendered dynamically here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- History Drawer -->
+        <section class="panel panel-history glass-card">
+            <div class="panel-header-history">
+                <h3><i data-lucide="history"></i> Lịch sử tính toán</h3>
+                <button type="button" class="btn btn-clear-history" onclick="clearHistory()">Xóa tất cả</button>
+            </div>
+            <div class="history-list" id="history-list">
+                <!-- History items will be dynamically rendered here -->
+                <div class="history-empty">Chưa có lịch sử tính toán nào.</div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="app-footer">
+        <div class="footer-container">
+            <p>&copy; 2026 SalaryFlow. Xây dựng và cập nhật chuẩn xác theo các quy định mới nhất của Bộ Lao động - Thương binh và Xã hội.</p>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
