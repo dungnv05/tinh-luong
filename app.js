@@ -586,15 +586,19 @@ function getSharedCookie(name) {
 }
 
 async function saveSalaryToSupabase(item) {
-    // Read shared session & configuration from wildcard cookie (.yundev.space)
+    // Read configuration from env.js or window or wildcard cookie
     const supabaseUrl = window.SUPABASE_URL || getSharedCookie('yundev_supabase_url') || "";
     const supabaseAnonKey = window.SUPABASE_ANON_KEY || getSharedCookie('yundev_supabase_key') || "";
     const sessionToken = getSharedCookie('yundev_session') || supabaseAnonKey;
 
-    if (!supabaseUrl || !supabaseAnonKey) return;
+    if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes("your-project") || supabaseUrl.includes("abcdefghijklmnopqrst")) {
+        console.info("ℹ️ Chưa điền cấu hình Supabase URL & Anon Key thực tế trong file env.js.");
+        return;
+    }
 
     try {
-        await fetch(`${supabaseUrl}/rest/v1/salary_history`, {
+        console.log("🚀 Đang gửi dữ liệu tính toán lên Supabase Database...");
+        const res = await fetch(`${supabaseUrl.replace(/\/$/, '')}/rest/v1/salary_history`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -609,9 +613,15 @@ async function saveSalaryToSupabase(item) {
                 net_salary: item.netVal
             })
         });
-        console.log("✅ Đã tự động đồng bộ kết quả lên Supabase qua Shared Cookie (.yundev.space)!");
+
+        if (res.ok || res.status === 201) {
+            console.log("✅ Đã tự động lưu kết quả tính toán vào Supabase Database (bảng salary_history) thành công!");
+        } else {
+            const errText = await res.text();
+            console.error(`❌ Supabase phản hồi lỗi [${res.status}]:`, errText);
+        }
     } catch (err) {
-        console.warn("⚠️ Chưa thể đồng bộ Supabase:", err);
+        console.error("❌ Không thể kết nối tới Supabase Database:", err);
     }
 }
 

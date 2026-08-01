@@ -1,0 +1,4 @@
+# Environment variables configuration file
+env.js
+*.local
+.DS_Store
