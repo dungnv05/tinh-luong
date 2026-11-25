@@ -73,83 +73,109 @@ body {
     line-height: 1.5;
 }
 
-/* --- Header --- */
-.app-header {
-    background-color: var(--bg-card);
-    backdrop-filter: var(--glass-blur);
-    -webkit-backdrop-filter: var(--glass-blur);
-    border-bottom: 1px solid var(--border-card);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    transition: background-color var(--transition-normal), border-color var(--transition-normal);
+/* --- Header (<yun-header>) --- */
+yun-header,
+body.light-mode yun-header {
+    --yh-bg: color-mix(in srgb, #f6f1ea 84%, transparent);
+    --yh-surface: #fff;
+    --yh-ink: #2a2438;
+    --yh-muted: #6b6478;
+    --yh-primary: #a78bfa;
+    --yh-on-primary: #1b1526;
+    --yh-focus: #8b6ff0;
+    --yh-border: #29203a1a;
+    --yh-font: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --yh-radius: 12px;
 }
 
-.header-container {
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 1rem 1.5rem;
+body.dark-mode yun-header {
+    --yh-bg: color-mix(in srgb, #1a1624 84%, transparent);
+    --yh-surface: #1d1927;
+    --yh-ink: #f2eff7;
+    --yh-muted: #b8b3c7;
+    --yh-primary: #a78bfa;
+    --yh-on-primary: #1b1526;
+    --yh-focus: #8b6ff0;
+    --yh-border: #ffffff14;
+}
+
+yun-header .brand {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: 12px;
+    min-width: 0;
+    text-decoration: none;
 }
 
-.logo-area {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-.logo-icon {
-    background: linear-gradient(135deg, var(--primary), var(--accent));
-    color: white;
-    width: 2.75rem;
-    height: 2.75rem;
-    border-radius: 0.75rem;
+yun-header .brand-icon {
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: var(--shadow-md);
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #8b6ff0, var(--yh-mint, #2d8a74));
+    color: #1b1526;
+    box-shadow: 0 10px 30px #29203a1a;
 }
 
-.logo-icon i {
-    width: 1.5rem;
-    height: 1.5rem;
+body.dark-mode yun-header .brand-icon {
+    --yh-mint: #8ed7c5;
+    box-shadow: 0 10px 30px #08060e59;
 }
 
-.logo-text h1 {
-    font-size: 1.25rem;
-    font-weight: 800;
-    letter-spacing: -0.025em;
-    background: linear-gradient(to right, var(--text-primary), var(--primary));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+yun-header .brand-icon svg {
+    width: 20px;
+    height: 20px;
 }
 
-.logo-subtext {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    font-weight: 500;
+yun-header .brand-name {
+    font-family: var(--yh-font);
+    font-size: 1.0625rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--yh-ink);
 }
 
-.btn-icon {
+yun-header .social-links {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+yun-header .social-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    border-radius: 12px;
+    border: 1px solid #29203a38;
     background: transparent;
-    border: 1px solid var(--border-card);
-    color: var(--text-secondary);
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 50%;
+    color: var(--yh-muted);
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all var(--transition-fast);
+    text-decoration: none;
 }
 
-.btn-icon:hover {
-    background-color: var(--primary-light);
-    color: var(--primary);
-    border-color: var(--primary);
+body.dark-mode yun-header .social-btn {
+    border-color: #ffffff14;
+}
+
+yun-header .social-btn:hover {
+    background: #f7f4fa;
+    color: var(--yh-ink);
+}
+
+body.dark-mode yun-header .social-btn:hover {
+    background: #252031;
+}
+
+yun-header .social-btn svg {
+    width: 18px;
+    height: 18px;
 }
 
 .light-mode .light-icon {
@@ -967,47 +993,6 @@ body {
         color: #000 !important;
         border-bottom: 1px solid #cbd5e1 !important;
     }
-}
-
-/* --- Header Login / Logout Buttons --- */
-.btn-login {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: #a855f7;
-    background: rgba(168, 85, 247, 0.1);
-    border: 1px solid rgba(168, 85, 247, 0.3);
-    padding: 0.25rem 0.65rem;
-    border-radius: 6px;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    cursor: pointer;
-    transition: var(--transition-fast);
-}
-
-.btn-login:hover {
-    background: rgba(168, 85, 247, 0.2);
-    border-color: #a855f7;
-}
-
-.btn-logout {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: #ef4444;
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    padding: 0.25rem 0.65rem;
-    border-radius: 6px;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    cursor: pointer;
-    transition: var(--transition-fast);
-}
-
-.btn-logout:hover {
-    background: rgba(239, 68, 68, 0.2);
-    border-color: #ef4444;
 }
 
 /* --- Auth Modal Overlay & Card --- */
