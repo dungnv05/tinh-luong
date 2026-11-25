@@ -13,6 +13,7 @@
     
     --primary: #4f46e5;
     --primary-solid: #4f46e5;
+    --primary-solid-hover: #4338ca;
     --on-primary: #ffffff;
     --primary-hover: #4338ca;
     --primary-light: rgba(79, 70, 229, 0.1);
@@ -44,6 +45,7 @@ html[data-theme="dark"] {
     
     --primary: #818cf8;
     --primary-solid: #4f46e5;
+    --primary-solid-hover: #4338ca;
     --primary-hover: #a5b4fc;
     --primary-light: rgba(99, 102, 241, 0.15);
     
@@ -556,7 +558,7 @@ yun-header .social-btn svg {
 }
 
 .btn-primary:hover {
-    background-color: var(--primary-hover);
+    background-color: var(--primary-solid-hover);
     transform: translateY(-1px);
 }
 
@@ -1093,7 +1095,7 @@ yun-header .social-btn svg {
 }
 
 .btn-auth-submit:hover {
-    background: var(--primary-hover);
+    background: var(--primary-solid-hover);
 }
 
 .btn-auth-submit:disabled {
