@@ -91,7 +91,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const isDark = document.body.classList.toggle("dark-mode");
         document.body.classList.toggle("light-mode", !isDark);
         localStorage.setItem("theme", isDark ? "dark" : "light");
-        
+
         // Redraw chart if exists (to update text colors in dark mode)
         if (lastCalculatedData) {
             renderChart(lastCalculatedData);
@@ -132,7 +132,7 @@ function formatVND(amount) {
 
 function switchMode(mode) {
     currentMode = mode;
-    
+
     const tabGrossNet = document.getElementById("tab-gross-net");
     const tabNetGross = document.getElementById("tab-net-gross");
     const salaryLabel = document.getElementById("salary-label");
@@ -193,7 +193,7 @@ function toggleCustomInsuranceInput(show) {
 function toggleAdvancedSettings() {
     const header = document.querySelector(".advanced-settings-header");
     const body = document.getElementById("advanced-settings-body");
-    
+
     const isActive = header.classList.toggle("active");
     if (isActive) {
         body.classList.remove("hidden");
@@ -245,7 +245,7 @@ function calculateGrossToNet(gross, params) {
 
     // 2. Taxable Income
     const incomeBeforeTax = gross - totalInsuranceEE;
-    
+
     // Deductions
     const selfDeduct = REGULATIONS[document.getElementById("period-select").value].selfDeduction;
     const depDeduct = REGULATIONS[document.getElementById("period-select").value].dependentDeduction * dependents;
@@ -320,7 +320,7 @@ function calculateGrossToNet(gross, params) {
 function calculateNetToGross(netTarget, params) {
     let lower = netTarget;
     // Set a safe upper bound: Net target plus high potential taxes and insurance
-    let upper = Math.max(netTarget * 3, 10000000); 
+    let upper = Math.max(netTarget * 3, 10000000);
     let grossSolution = netTarget;
 
     // Run binary search
@@ -350,7 +350,7 @@ function calculate() {
     const region = document.getElementById("region-select").value;
     const dependents = parseInt(document.getElementById("dependents-input").value) || 0;
     const insuranceType = document.querySelector('input[name="insurance-type"]:checked').value;
-    
+
     let customInsuranceSalary = 0;
     if (insuranceType === 'custom') {
         customInsuranceSalary = parseFormattedNumber(document.getElementById("custom-insurance-input").value);
@@ -443,7 +443,7 @@ function renderResults(res) {
     // Render PIT steps
     const pitStepsContainer = document.getElementById("pit-steps-container");
     pitStepsContainer.innerHTML = "";
-    
+
     let hasTax = false;
     res.pitSteps.forEach(step => {
         if (step.taxable > 0) {
@@ -472,7 +472,7 @@ function renderResults(res) {
 
 function renderChart(res) {
     const ctx = document.getElementById("salary-chart").getContext("2d");
-    
+
     // Destroy previous instance
     if (salaryChart) {
         salaryChart.destroy();
@@ -522,7 +522,7 @@ function renderChart(res) {
     // Render Custom Legends
     const legendContainer = document.getElementById("chart-legend");
     legendContainer.innerHTML = "";
-    
+
     const total = data.reduce((a, b) => a + b, 0);
     labels.forEach((lbl, i) => {
         const pct = total > 0 ? ((data[i] / total) * 100).toFixed(1) : 0;
@@ -581,297 +581,87 @@ function saveHistory() {
     localStorage.setItem("salary_history", JSON.stringify(calculationHistory));
 }
 
-// --- Supabase Auth & Multi-Subdomain SSO Sync ---
-const COOKIE_DOMAIN = typeof window !== 'undefined' && window.location.hostname.includes('yundev.space') ? '.yundev.space' : '';
-
-function setSharedCookie(name, value, days = 30) {
-    const expires = new Date(Date.now() + days * 864e5).toUTCString();
-    const domainAttr = COOKIE_DOMAIN ? `; Domain=${COOKIE_DOMAIN}` : '';
-    document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/${domainAttr}; SameSite=Lax; Secure`;
-}
-
-function getSharedCookie(name) {
-    if (typeof document === 'undefined') return '';
-    return document.cookie.split('; ').reduce((r, v) => {
-        const parts = v.split('=');
-        return parts[0].trim() === name ? decodeURIComponent(parts[1]) : r;
-    }, '');
-}
-
-function removeSharedCookie(name) {
-    const domainAttr = COOKIE_DOMAIN ? `; Domain=${COOKIE_DOMAIN}` : '';
-    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/${domainAttr}`;
-    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
-}
-
-const cookieStorage = {
-    getItem: (key) => {
-        const cookieVal = getSharedCookie(key);
-        if (cookieVal) return cookieVal;
-        return typeof window !== 'undefined' ? localStorage.getItem(key) : null;
-    },
-    setItem: (key, value) => {
-        setSharedCookie(key, value);
-        if (typeof window !== 'undefined') {
-            localStorage.setItem(key, value);
-        }
-    },
-    removeItem: (key) => {
-        removeSharedCookie(key);
-        if (typeof window !== 'undefined') {
-            localStorage.removeItem(key);
-        }
-    }
-};
-
-let supabaseClient = null;
-let isSignUpMode = false;
-
-async function initSupabaseAuthClient() {
-    if (supabaseClient) return supabaseClient;
-    const { url, key } = await getSupabaseCredentials();
-    if (!url || !key || url.includes("your-project") || url.includes("abcdefghijklmnopqrst")) {
-        return null;
-    }
-    if (window.supabase && window.supabase.createClient) {
-        supabaseClient = window.supabase.createClient(url, key, {
-            auth: {
-                persistSession: true,
-                autoRefreshToken: true,
-                detectSessionInUrl: true,
-                storageKey: 'yundev_supabase_auth_token',
-                storage: cookieStorage
-            }
-        });
-        
-        supabaseClient.auth.onAuthStateChange((_event, session) => {
-            renderUserSessionBadge(session?.user || null);
-        });
-    }
-    return supabaseClient;
-}
-
-function parseJwtPayload(token) {
-    try {
-        const base64Url = token.split('.')[1];
-        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => {
-            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-        }).join(''));
-        return JSON.parse(jsonPayload);
-    } catch (e) {
-        return null;
-    }
-}
+// --- Shared YunDev Portal Session ---
 
 function renderUserSessionBadge(user) {
     const badgeContainer = document.getElementById("user-session-badge");
     if (!badgeContainer) return;
 
-    const sessionToken = getSharedCookie('yundev_session');
-    let email = user?.email;
+    badgeContainer.innerHTML = "";
 
-    if (!email && sessionToken) {
-        const payload = parseJwtPayload(sessionToken);
-        email = payload?.email;
-    }
+    const wrapper = document.createElement("div");
+    wrapper.style.display = "inline-flex";
+    wrapper.style.alignItems = "center";
+    wrapper.style.gap = "0.4rem";
 
-    if (email || user) {
-        const userEmail = email || "Đã đăng nhập";
-        badgeContainer.innerHTML = `
-            <div style="display: inline-flex; align-items: center; gap: 0.4rem;">
-                <span style="font-size: 0.75rem; font-weight: 700; color: #10b981; border: 1px solid #10b981; padding: 0.25rem 0.6rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 0.35rem; background: rgba(16, 185, 129, 0.1);" title="Tài khoản: ${userEmail}">
-                    <i data-lucide="user-check" style="width: 14px; height: 14px;"></i> ${userEmail}
-                </span>
-                <button type="button" onclick="handleLogoutClick()" class="btn-logout" title="Đăng xuất khỏi tất cả dịch vụ YunDev">
-                    <i data-lucide="log-out" style="width: 14px; height: 14px;"></i> Đăng xuất
-                </button>
-            </div>
-        `;
+    if (user && (user.email || user.id)) {
+        const userEmail = user.email || "Đã đăng nhập";
+        const displayLabel = user.email ? (user.email.split("@")[0] || user.email) : userEmail;
+
+        const badge = document.createElement("span");
+        badge.style.cssText = "font-size: 0.75rem; font-weight: 700; color: #10b981; border: 1px solid #10b981; padding: 0.25rem 0.6rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 0.35rem; background: rgba(16, 185, 129, 0.1);";
+        badge.title = `Tài khoản: ${userEmail}`;
+        badge.innerHTML = '<i data-lucide="user-check" style="width: 14px; height: 14px;"></i>';
+        badge.appendChild(document.createTextNode(` ${displayLabel}`));
+
+        const logoutBtn = document.createElement("button");
+        logoutBtn.type = "button";
+        logoutBtn.className = "btn-logout";
+        logoutBtn.title = "Đăng xuất khỏi tất cả dịch vụ YunDev";
+        logoutBtn.innerHTML = '<i data-lucide="log-out" style="width: 14px; height: 14px;"></i> Đăng xuất';
+        logoutBtn.addEventListener("click", handleLogoutClick);
+
+        wrapper.appendChild(badge);
+        wrapper.appendChild(logoutBtn);
     } else {
-        badgeContainer.innerHTML = `
-            <div style="display: inline-flex; align-items: center; gap: 0.4rem;">
-                <button type="button" onclick="openAuthModal()" class="btn-login" title="Đăng nhập YunDev SSO">
-                    <i data-lucide="log-in" style="width: 14px; height: 14px;"></i> Đăng nhập
-                </button>
-            </div>
-        `;
+        const loginLink = document.createElement("a");
+        loginLink.href = `https://www.yundev.space/?next=${encodeURIComponent(window.location.href)}`;
+        loginLink.className = "btn-login";
+        loginLink.style.textDecoration = "none";
+        loginLink.title = "Đăng nhập YunDev";
+        loginLink.innerHTML = '<i data-lucide="log-in" style="width: 14px; height: 14px;"></i> Đăng nhập';
+
+        wrapper.appendChild(loginLink);
     }
+
+    badgeContainer.appendChild(wrapper);
+
     if (window.lucide) {
         lucide.createIcons();
     }
 }
 
 async function checkSharedSession() {
-    const user = await syncSharedSSOSession();
-    renderUserSessionBadge(user);
-}
-
-async function syncSharedSSOSession() {
-    const client = await initSupabaseAuthClient();
-    const sharedSessionCookie = getSharedCookie('yundev_supabase_auth_token');
-    const sharedAccessToken = getSharedCookie('yundev_session');
-
-    let currentSession = null;
-    if (client) {
-        const { data } = await client.auth.getSession();
-        currentSession = data.session;
-    }
-
-    if (!sharedSessionCookie && !sharedAccessToken && currentSession) {
-        console.log('[SSO Sync] Logout detected. Signing out...');
-        await signOutUser();
+    if (!window.YundevAuth || typeof window.YundevAuth.getMe !== "function") {
+        renderUserSessionBadge(null);
         return null;
     }
-
-    if (sharedSessionCookie && client) {
-        try {
-            const parsedSession = JSON.parse(sharedSessionCookie);
-            if (parsedSession && parsedSession.access_token) {
-                if (!currentSession || currentSession.access_token !== parsedSession.access_token) {
-                    const { data, error } = await client.auth.setSession({
-                        access_token: parsedSession.access_token,
-                        refresh_token: parsedSession.refresh_token || ''
-                    });
-                    if (!error && data.session) {
-                        return data.session.user;
-                    }
-                }
-            }
-        } catch (err) {
-            console.warn('[SSO Sync Error]:', err);
-        }
-    }
-
-    return currentSession?.user || null;
-}
-
-// Modal UI Functions
-function openAuthModal() {
-    const overlay = document.getElementById("auth-modal-overlay");
-    if (overlay) overlay.style.display = "flex";
-    setAuthModalAlert(null);
-}
-
-function closeAuthModal() {
-    const overlay = document.getElementById("auth-modal-overlay");
-    if (overlay) overlay.style.display = "none";
-}
-
-function closeAuthModalOnOverlay(e) {
-    if (e.target.id === "auth-modal-overlay") {
-        closeAuthModal();
-    }
-}
-
-function toggleAuthMode() {
-    isSignUpMode = !isSignUpMode;
-    const title = document.getElementById("auth-modal-title");
-    const submitBtn = document.getElementById("auth-submit-btn");
-    const switchText = document.getElementById("auth-switch-text");
-    const switchBtn = document.getElementById("auth-switch-btn");
-
-    if (isSignUpMode) {
-        if (title) title.innerHTML = '<i data-lucide="user-plus"></i> Đăng ký tài khoản YunDev';
-        if (submitBtn) submitBtn.textContent = 'Đăng ký';
-        if (switchText) switchText.textContent = 'Đã có tài khoản?';
-        if (switchBtn) switchBtn.textContent = 'Đăng nhập ngay';
-    } else {
-        if (title) title.innerHTML = '<i data-lucide="lock"></i> Đăng nhập YunDev SSO';
-        if (submitBtn) submitBtn.textContent = 'Đăng nhập';
-        if (switchText) switchText.textContent = 'Chưa có tài khoản?';
-        if (switchBtn) switchBtn.textContent = 'Đăng ký ngay';
-    }
-    if (window.lucide) lucide.createIcons();
-    setAuthModalAlert(null);
-}
-
-function setAuthModalAlert(msg) {
-    const alertBox = document.getElementById("auth-modal-alert");
-    if (!alertBox) return;
-    if (!msg) {
-        alertBox.style.display = "none";
-        alertBox.textContent = "";
-        return;
-    }
-    alertBox.style.display = "block";
-    alertBox.className = `auth-alert ${msg.type === 'error' ? 'auth-alert-error' : 'auth-alert-success'}`;
-    alertBox.textContent = msg.text;
-}
-
-async function handleAuthFormSubmit(e) {
-    e.preventDefault();
-    const email = document.getElementById("auth-email").value.trim();
-    const password = document.getElementById("auth-password").value;
-    const submitBtn = document.getElementById("auth-submit-btn");
-
-    if (!email || !password) return;
-
-    if (submitBtn) submitBtn.disabled = true;
-    setAuthModalAlert({ type: 'info', text: 'Đang xử lý...' });
-
-    try {
-        const client = await initSupabaseAuthClient();
-        if (!client) throw new Error("Chưa thể kết nối tới máy chủ xác thực Supabase.");
-
-        if (isSignUpMode) {
-            const { data, error } = await client.auth.signUp({ email, password });
-            if (error) throw error;
-            setAuthModalAlert({ type: 'success', text: 'Đăng ký thành công! Vui lòng kiểm tra email để xác nhận (nếu có).' });
-        } else {
-            const { data, error } = await client.auth.signInWithPassword({ email, password });
-            if (error) throw error;
-
-            if (data.session) {
-                setSharedCookie('yundev_session', data.session.access_token);
-                setSharedCookie('yundev_supabase_auth_token', JSON.stringify(data.session));
-                localStorage.setItem('yundev_session', data.session.access_token);
-                localStorage.setItem('yundev_supabase_auth_token', JSON.stringify(data.session));
-            }
-            renderUserSessionBadge(data.user);
-            closeAuthModal();
-        }
-    } catch (err) {
-        setAuthModalAlert({ type: 'error', text: err.message || 'Thao tác thất bại. Vui lòng thử lại.' });
-    } finally {
-        if (submitBtn) submitBtn.disabled = false;
-    }
+    const user = await window.YundevAuth.getMe();
+    renderUserSessionBadge(user);
+    return user;
 }
 
 async function handleLogoutClick() {
-    await signOutUser();
-}
-
-async function signOutUser() {
-    removeSharedCookie('yundev_session');
-    removeSharedCookie('yundev_supabase_auth_token');
-    localStorage.removeItem('yundev_session');
-    localStorage.removeItem('yundev_supabase_auth_token');
-    
-    if (supabaseClient) {
-        await supabaseClient.auth.signOut();
+    if (window.YundevAuth && typeof window.YundevAuth.logout === "function") {
+        const ok = await window.YundevAuth.logout();
+        if (ok) {
+            renderUserSessionBadge(null);
+            return;
+        }
     }
-    renderUserSessionBadge(null);
+    await checkSharedSession();
 }
 
-// Window Focus & Storage Listener for Real-Time SSO Sync across subdomains
+// Keep header session badge in sync with portal account
 if (typeof window !== 'undefined') {
-    window.addEventListener('focus', () => {
-        syncSharedSSOSession().then(user => renderUserSessionBadge(user));
-    });
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
-            syncSharedSSOSession().then(user => renderUserSessionBadge(user));
-        }
-    });
-    window.addEventListener('storage', (e) => {
-        if (e.key === 'yundev_session' || e.key === 'yundev_supabase_auth_token') {
-            syncSharedSSOSession().then(user => renderUserSessionBadge(user));
+            checkSharedSession();
         }
     });
     setInterval(() => {
-        syncSharedSSOSession().then(user => renderUserSessionBadge(user));
-    }, 2500);
+        checkSharedSession();
+    }, 30000);
 }
 
 async function getSupabaseCredentials() {
@@ -901,12 +691,13 @@ async function getSupabaseCredentials() {
 
 async function saveSalaryToSupabase(item) {
     const { url: supabaseUrl, key: supabaseAnonKey } = await getSupabaseCredentials();
-    const sessionToken = getSharedCookie('yundev_session') || supabaseAnonKey;
 
     if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes("your-project") || supabaseUrl.includes("abcdefghijklmnopqrst")) {
         console.info("ℹ️ Chưa điền cấu hình Supabase URL & Anon Key thực tế.");
         return;
     }
+
+    // shared session is HttpOnly; data calls use the anon key + RLS
 
     // --- Input Validation & Sanitization (Bảo vệ tính toàn vẹn dữ liệu) ---
     // Kiểm tra định dạng cơ bản: Chắc chắn các giá trị là số và hợp lý, chống Injection hoặc Data Overflow.
@@ -928,7 +719,7 @@ async function saveSalaryToSupabase(item) {
             headers: {
                 'Content-Type': 'application/json',
                 'apikey': supabaseAnonKey,
-                'Authorization': `Bearer ${sessionToken}`,
+                'Authorization': `Bearer ${supabaseAnonKey}`,
                 'Prefer': 'return=minimal'
             },
             body: JSON.stringify({
@@ -952,8 +743,8 @@ async function saveSalaryToSupabase(item) {
 
 function addToHistory(item) {
     // Avoid exact duplicates at the top
-    if (calculationHistory.length > 0 && 
-        calculationHistory[0].mode === item.mode && 
+    if (calculationHistory.length > 0 &&
+        calculationHistory[0].mode === item.mode &&
         calculationHistory[0].inputVal === item.inputVal) {
         return;
     }
@@ -985,7 +776,7 @@ function loadHistoryItem(index) {
 
     // Put values back
     document.getElementById("salary-input").value = item.inputVal.toLocaleString("en-US");
-    
+
     // Recalculate
     calculate();
 }
