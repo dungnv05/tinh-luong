@@ -9,9 +9,11 @@
     
     --text-primary: #0f172a;
     --text-secondary: #475569;
-    --text-muted: #94a3b8;
+    --text-muted: #64748b;
     
     --primary: #4f46e5;
+    --primary-solid: #4f46e5;
+    --on-primary: #ffffff;
     --primary-hover: #4338ca;
     --primary-light: rgba(79, 70, 229, 0.1);
     
@@ -38,10 +40,11 @@ html[data-theme="dark"] {
     
     --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
-    --text-muted: #64748b;
+    --text-muted: #94a3b8;
     
-    --primary: #6366f1;
-    --primary-hover: #4f46e5;
+    --primary: #818cf8;
+    --primary-solid: #4f46e5;
+    --primary-hover: #a5b4fc;
     --primary-light: rgba(99, 102, 241, 0.15);
     
     --accent: #34d399;
@@ -547,8 +550,8 @@ yun-header .social-btn svg {
 }
 
 .btn-primary {
-    background-color: var(--primary);
-    color: white;
+    background-color: var(--primary-solid);
+    color: var(--on-primary);
     box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
 }
 
@@ -618,8 +621,8 @@ yun-header .social-btn svg {
 }
 
 .main-highlight {
-    background: linear-gradient(135deg, var(--primary), #3b82f6);
-    color: white;
+    background: linear-gradient(135deg, var(--primary-solid), #3b82f6);
+    color: var(--on-primary);
 }
 
 .main-highlight .card-label {
@@ -1080,8 +1083,8 @@ yun-header .social-btn svg {
     padding: 0.75rem;
     border-radius: 8px;
     border: none;
-    background: var(--primary);
-    color: #ffffff;
+    background: var(--primary-solid);
+    color: var(--on-primary);
     font-weight: 700;
     font-size: 0.95rem;
     cursor: pointer;
