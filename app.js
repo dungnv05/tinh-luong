@@ -82,9 +82,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Check Shared Session from yundev.space
-    checkSharedSession();
-
     // Theme Toggle
     const themeBtn = document.getElementById("theme-toggle");
     themeBtn.addEventListener("click", () => {
@@ -579,89 +576,6 @@ function loadHistory() {
 
 function saveHistory() {
     localStorage.setItem("salary_history", JSON.stringify(calculationHistory));
-}
-
-// --- Shared YunDev Portal Session ---
-
-function renderUserSessionBadge(user) {
-    const badgeContainer = document.getElementById("user-session-badge");
-    if (!badgeContainer) return;
-
-    badgeContainer.innerHTML = "";
-
-    const wrapper = document.createElement("div");
-    wrapper.style.display = "inline-flex";
-    wrapper.style.alignItems = "center";
-    wrapper.style.gap = "0.4rem";
-
-    if (user && (user.email || user.id)) {
-        const userEmail = user.email || "Đã đăng nhập";
-        const displayLabel = user.email ? (user.email.split("@")[0] || user.email) : userEmail;
-
-        const badge = document.createElement("span");
-        badge.style.cssText = "font-size: 0.75rem; font-weight: 700; color: #10b981; border: 1px solid #10b981; padding: 0.25rem 0.6rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 0.35rem; background: rgba(16, 185, 129, 0.1);";
-        badge.title = `Tài khoản: ${userEmail}`;
-        badge.innerHTML = '<i data-lucide="user-check" style="width: 14px; height: 14px;"></i>';
-        badge.appendChild(document.createTextNode(` ${displayLabel}`));
-
-        const logoutBtn = document.createElement("button");
-        logoutBtn.type = "button";
-        logoutBtn.className = "btn-logout";
-        logoutBtn.title = "Đăng xuất khỏi tất cả dịch vụ YunDev";
-        logoutBtn.innerHTML = '<i data-lucide="log-out" style="width: 14px; height: 14px;"></i> Đăng xuất';
-        logoutBtn.addEventListener("click", handleLogoutClick);
-
-        wrapper.appendChild(badge);
-        wrapper.appendChild(logoutBtn);
-    } else {
-        const loginLink = document.createElement("a");
-        loginLink.href = `https://www.yundev.space/?next=${encodeURIComponent(window.location.href)}`;
-        loginLink.className = "btn-login";
-        loginLink.style.textDecoration = "none";
-        loginLink.title = "Đăng nhập YunDev";
-        loginLink.innerHTML = '<i data-lucide="log-in" style="width: 14px; height: 14px;"></i> Đăng nhập';
-
-        wrapper.appendChild(loginLink);
-    }
-
-    badgeContainer.appendChild(wrapper);
-
-    if (window.lucide) {
-        lucide.createIcons();
-    }
-}
-
-async function checkSharedSession() {
-    if (!window.YundevAuth || typeof window.YundevAuth.getMe !== "function") {
-        renderUserSessionBadge(null);
-        return null;
-    }
-    const user = await window.YundevAuth.getMe();
-    renderUserSessionBadge(user);
-    return user;
-}
-
-async function handleLogoutClick() {
-    if (window.YundevAuth && typeof window.YundevAuth.logout === "function") {
-        const ok = await window.YundevAuth.logout();
-        if (ok) {
-            renderUserSessionBadge(null);
-            return;
-        }
-    }
-    await checkSharedSession();
-}
-
-// Keep header session badge in sync with portal account
-if (typeof window !== 'undefined') {
-    document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') {
-            checkSharedSession();
-        }
-    });
-    setInterval(() => {
-        checkSharedSession();
-    }, 30000);
 }
 
 async function getSupabaseCredentials() {
