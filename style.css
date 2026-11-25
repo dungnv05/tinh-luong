@@ -30,7 +30,7 @@
     --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.dark-mode {
+html[data-theme="dark"] {
     /* Dark Mode Palette */
     --bg-app: #090d16;
     --bg-card: rgba(17, 24, 39, 0.7);
@@ -75,28 +75,32 @@ body {
 
 /* --- Header (<yun-header>) --- */
 yun-header,
-body.light-mode yun-header {
-    --yh-bg: color-mix(in srgb, #f6f1ea 84%, transparent);
-    --yh-surface: #fff;
-    --yh-ink: #2a2438;
-    --yh-muted: #6b6478;
-    --yh-primary: #a78bfa;
-    --yh-on-primary: #1b1526;
-    --yh-focus: #8b6ff0;
-    --yh-border: #29203a1a;
+html[data-theme="light"] yun-header {
+    --yh-bg: color-mix(in srgb, #f4f6f9 84%, transparent);
+    --yh-surface: #ffffff;
+    --yh-ink: #0f172a;
+    --yh-muted: #475569;
+    --yh-primary: #4f46e5;
+    --yh-on-primary: #ffffff;
+    --yh-focus: #4f46e5;
+    --yh-border: rgba(15, 23, 42, 0.10);
+    --yh-toggle-border: rgba(15, 23, 42, 0.18);
+    --yh-toggle-hover-bg: rgba(79, 70, 229, 0.10);
     --yh-font: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
     --yh-radius: 12px;
 }
 
-body.dark-mode yun-header {
-    --yh-bg: color-mix(in srgb, #1a1624 84%, transparent);
-    --yh-surface: #1d1927;
-    --yh-ink: #f2eff7;
-    --yh-muted: #b8b3c7;
-    --yh-primary: #a78bfa;
-    --yh-on-primary: #1b1526;
-    --yh-focus: #8b6ff0;
-    --yh-border: #ffffff14;
+html[data-theme="dark"] yun-header {
+    --yh-bg: color-mix(in srgb, #090d16 84%, transparent);
+    --yh-surface: #111827;
+    --yh-ink: #f8fafc;
+    --yh-muted: #94a3b8;
+    --yh-primary: #4f46e5;
+    --yh-on-primary: #ffffff;
+    --yh-focus: #818cf8;
+    --yh-border: rgba(148, 163, 184, 0.20);
+    --yh-toggle-border: rgba(148, 163, 184, 0.28);
+    --yh-toggle-hover-bg: rgba(99, 102, 241, 0.18);
 }
 
 yun-header .brand {
@@ -115,14 +119,13 @@ yun-header .brand-icon {
     width: 40px;
     height: 40px;
     border-radius: 14px;
-    background: linear-gradient(135deg, #8b6ff0, var(--yh-mint, #2d8a74));
-    color: #1b1526;
-    box-shadow: 0 10px 30px #29203a1a;
+    background: linear-gradient(135deg, #4f46e5, #10b981);
+    color: #ffffff;
+    box-shadow: var(--shadow-md);
 }
 
-body.dark-mode yun-header .brand-icon {
-    --yh-mint: #8ed7c5;
-    box-shadow: 0 10px 30px #08060e59;
+html[data-theme="dark"] yun-header .brand-icon {
+    background: linear-gradient(135deg, #6366f1, #34d399);
 }
 
 yun-header .brand-icon svg {
@@ -153,37 +156,22 @@ yun-header .social-btn {
     height: 42px;
     padding: 0;
     border-radius: 12px;
-    border: 1px solid #29203a38;
+    border: 1px solid var(--yh-toggle-border);
     background: transparent;
     color: var(--yh-muted);
     cursor: pointer;
     text-decoration: none;
-}
-
-body.dark-mode yun-header .social-btn {
-    border-color: #ffffff14;
+    transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
 }
 
 yun-header .social-btn:hover {
-    background: #f7f4fa;
+    background: var(--yh-toggle-hover-bg);
     color: var(--yh-ink);
-}
-
-body.dark-mode yun-header .social-btn:hover {
-    background: #252031;
 }
 
 yun-header .social-btn svg {
     width: 18px;
     height: 18px;
-}
-
-.light-mode .light-icon {
-    display: none;
-}
-
-.dark-mode .dark-icon {
-    display: none;
 }
 
 /* --- Main Layout --- */
