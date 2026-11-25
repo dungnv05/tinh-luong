@@ -8,7 +8,7 @@ module.exports = (req, res) => {
     'http://localhost:5173', // Vite local
     'http://127.0.0.1:5173'
   ];
-  
+
   const origin = req.headers.origin;
   if (allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
@@ -29,9 +29,11 @@ module.exports = (req, res) => {
 
   const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
   const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+  const turnstileSiteKey = process.env.TURNSTILE_SITE_KEY || '';
 
   res.status(200).json({
     supabaseUrl,
-    supabaseAnonKey
+    supabaseAnonKey,
+    turnstileSiteKey
   });
 };

@@ -2,3 +2,6 @@
 env.js
 *.local
 .DS_Store
+
+.vercel
+.env*
