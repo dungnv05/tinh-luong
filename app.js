@@ -82,25 +82,12 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Theme Toggle
-    const themeBtn = document.getElementById("theme-toggle");
-    themeBtn.addEventListener("click", () => {
-        const isDark = document.body.classList.toggle("dark-mode");
-        document.body.classList.toggle("light-mode", !isDark);
-        localStorage.setItem("theme", isDark ? "dark" : "light");
-
-        // Redraw chart if exists (to update text colors in dark mode)
+    // Sync chart colors when shared header switches theme
+    document.addEventListener("yh-theme-change", () => {
         if (lastCalculatedData) {
             renderChart(lastCalculatedData);
         }
     });
-
-    // Load stored theme
-    const savedTheme = localStorage.getItem("theme");
-    if (savedTheme === "dark") {
-        document.body.classList.add("dark-mode");
-        document.body.classList.remove("light-mode");
-    }
 });
 
 // --- UI Actions & Event Handlers ---
@@ -467,6 +454,10 @@ function renderResults(res) {
     renderChart(res);
 }
 
+function isDarkTheme() {
+    return document.documentElement.dataset.theme === "dark";
+}
+
 function renderChart(res) {
     const ctx = document.getElementById("salary-chart").getContext("2d");
 
@@ -475,7 +466,7 @@ function renderChart(res) {
         salaryChart.destroy();
     }
 
-    const isDarkMode = document.body.classList.contains("dark-mode");
+    const isDarkMode = isDarkTheme();
     const labelColor = isDarkMode ? "#94a3b8" : "#475569";
     const gridColor = isDarkMode ? "#312e81" : "#e2e8f0";
 
@@ -558,10 +549,21 @@ function exportPDF() {
     const headerInfo = document.querySelector(".export-header-info");
     headerInfo.style.display = "block";
 
-    // Run PDF generation
-    html2pdf().set(opt).from(element).save().then(() => {
+    // Keep PDF export in light theme
+    const prevTheme = document.documentElement.dataset.theme;
+    if (prevTheme === "dark") {
+        document.documentElement.dataset.theme = "light";
+    }
+
+    const restore = () => {
         headerInfo.style.display = "none";
-    });
+        if (prevTheme) {
+            document.documentElement.dataset.theme = prevTheme;
+        }
+    };
+
+    // Run PDF generation
+    html2pdf().set(opt).from(element).save().then(restore, restore);
 }
 
 // --- History Storage Management ---
