@@ -659,7 +659,24 @@ function exportPDF() {
 function loadHistory() {
     const stored = localStorage.getItem("salary_history");
     if (stored) {
-        calculationHistory = JSON.parse(stored);
+        try {
+            const parsed = JSON.parse(stored);
+            if (Array.isArray(parsed)) {
+                calculationHistory = parsed
+                    .filter((item) => item && typeof item === "object")
+                    .map((item) => ({
+                        mode: item.mode === "net-gross" ? "net-gross" : "gross-net",
+                        inputVal: Number(item.inputVal) || 0,
+                        netVal: Number(item.netVal) || 0,
+                        grossVal: Number(item.grossVal) || 0,
+                        timestamp: item.timestamp != null ? String(item.timestamp) : ""
+                    }));
+            } else {
+                calculationHistory = [];
+            }
+        } catch (e) {
+            calculationHistory = [];
+        }
     }
     renderHistoryList();
 }
@@ -790,7 +807,10 @@ function renderHistoryList() {
     listEl.innerHTML = "";
 
     if (calculationHistory.length === 0) {
-        listEl.innerHTML = `<div class="history-empty">Chưa có lịch sử tính toán nào.</div>`;
+        const emptyEl = document.createElement("div");
+        emptyEl.className = "history-empty";
+        emptyEl.textContent = "Chưa có lịch sử tính toán nào.";
+        listEl.appendChild(emptyEl);
         return;
     }
 
@@ -804,16 +824,35 @@ function renderHistoryList() {
         const inputFormatted = formatVND(item.inputVal);
         const resultFormatted = formatVND(isGrossToNet ? item.netVal : item.grossVal);
 
-        itemEl.innerHTML = `
-            <div class="history-item-left">
-                <span class="history-item-title">${titleText} (Nhập ${inputFormatted})</span>
-                <span class="history-item-subtitle">Vào lúc ${item.timestamp}</span>
-            </div>
-            <div class="history-item-right">
-                <span>${resultFormatted}</span>
-                <i data-lucide="chevron-right" class="history-item-arrow"></i>
-            </div>
-        `;
+        const leftEl = document.createElement("div");
+        leftEl.className = "history-item-left";
+
+        const titleEl = document.createElement("span");
+        titleEl.className = "history-item-title";
+        titleEl.textContent = `${titleText} (Nhập ${inputFormatted})`;
+
+        const subtitleEl = document.createElement("span");
+        subtitleEl.className = "history-item-subtitle";
+        subtitleEl.textContent = `Vào lúc ${item.timestamp}`;
+
+        leftEl.appendChild(titleEl);
+        leftEl.appendChild(subtitleEl);
+
+        const rightEl = document.createElement("div");
+        rightEl.className = "history-item-right";
+
+        const resultEl = document.createElement("span");
+        resultEl.textContent = resultFormatted;
+
+        const arrowEl = document.createElement("i");
+        arrowEl.setAttribute("data-lucide", "chevron-right");
+        arrowEl.className = "history-item-arrow";
+
+        rightEl.appendChild(resultEl);
+        rightEl.appendChild(arrowEl);
+
+        itemEl.appendChild(leftEl);
+        itemEl.appendChild(rightEl);
         listEl.appendChild(itemEl);
     });
 

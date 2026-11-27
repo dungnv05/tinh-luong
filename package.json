@@ -4,6 +4,7 @@
   "private": true,
   "description": "Gross to Net Salary Calculator Vietnam",
   "scripts": {
-    "build": "node build-env.js"
+    "build": "node build-env.js",
+    "test": "node --test"
   }
 }
