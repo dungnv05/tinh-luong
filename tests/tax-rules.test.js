@@ -91,30 +91,39 @@ test('Gross->Net july-2026 with 30,000,000 gross and 0/1/2 dependents', () => {
     assert.equal(r2.net, 26850000);
 });
 
-test('Gross->Net jan-2026 and prev-2026 regression with 30,000,000 gross', () => {
+test('Gross->Net jan-2026 (2026 PIT) and prev-2026 (old PIT) with 30,000,000 gross', () => {
     const jan0 = TaxRules.calculateGrossToNet(30000000, makeParams('jan-2026', 0));
-    assert.equal(jan0.pit, 1627500);
-    assert.equal(jan0.net, 25222500);
+    assert.equal(jan0.pit, 635000);
+    assert.equal(jan0.net, 26215000);
+
+    const jan1 = TaxRules.calculateGrossToNet(30000000, makeParams('jan-2026', 1));
+    assert.equal(jan1.pit, 257500);
+    assert.equal(jan1.net, 26592500);
+
+    const jan2 = TaxRules.calculateGrossToNet(30000000, makeParams('jan-2026', 2));
+    assert.equal(jan2.pit, 0);
+    assert.equal(jan2.net, 26850000);
 
     const prev0 = TaxRules.calculateGrossToNet(30000000, makeParams('prev-2026', 0));
     assert.equal(prev0.pit, 1627500);
     assert.equal(prev0.net, 25222500);
 
-    const jan1 = TaxRules.calculateGrossToNet(30000000, makeParams('jan-2026', 1));
-    assert.equal(jan1.taxableIncome, 11450000);
-    assert.equal(jan1.pit, 967500);
+    const prev1 = TaxRules.calculateGrossToNet(30000000, makeParams('prev-2026', 1));
+    assert.equal(prev1.taxableIncome, 11450000);
+    assert.equal(prev1.pit, 967500);
+    assert.equal(prev1.net, 25882500);
 });
 
 test('REGULATIONS deduction values and pitSchedule mapping per period', () => {
-    assert.equal(TaxRules.REGULATIONS['july-2026'].selfDeduction, 15500000);
-    assert.equal(TaxRules.REGULATIONS['july-2026'].dependentDeduction, 6200000);
-    assert.equal(TaxRules.REGULATIONS['july-2026'].pitSchedule, 'law109-2025');
-
-    for (const key of ['jan-2026', 'prev-2026']) {
-        assert.equal(TaxRules.REGULATIONS[key].selfDeduction, 11000000);
-        assert.equal(TaxRules.REGULATIONS[key].dependentDeduction, 4400000);
-        assert.equal(TaxRules.REGULATIONS[key].pitSchedule, 'tt111-2013');
+    for (const key of ['july-2026', 'jan-2026']) {
+        assert.equal(TaxRules.REGULATIONS[key].selfDeduction, 15500000);
+        assert.equal(TaxRules.REGULATIONS[key].dependentDeduction, 6200000);
+        assert.equal(TaxRules.REGULATIONS[key].pitSchedule, 'law109-2025');
     }
+
+    assert.equal(TaxRules.REGULATIONS['prev-2026'].selfDeduction, 11000000);
+    assert.equal(TaxRules.REGULATIONS['prev-2026'].dependentDeduction, 4400000);
+    assert.equal(TaxRules.REGULATIONS['prev-2026'].pitSchedule, 'tt111-2013');
 });
 
 test('Insurance cap july-2026 at 80,000,000 gross', () => {
@@ -123,20 +132,28 @@ test('Insurance cap july-2026 at 80,000,000 gross', () => {
     assert.equal(res.eeBHXH, 4048000);
 });
 
-test('BHTN cap differs by period region minimum wage', () => {
+test('Insurance caps differ by period at 120,000,000 gross', () => {
     const julyRes = TaxRules.calculateGrossToNet(120000000, makeParams('july-2026', 0, 1));
-    assert.equal(julyRes.eeBHTN, 1062000);
     assert.equal(julyRes.eeBHXH, 4048000);
+    assert.equal(julyRes.eeBHTN, 1062000);
+
+    const janRes = TaxRules.calculateGrossToNet(120000000, makeParams('jan-2026', 0, 1));
+    assert.equal(janRes.eeBHXH, 3744000);
+    assert.equal(janRes.eeBHTN, 1062000);
+    assert.equal(janRes.totalInsuranceEE, 5508000);
+    assert.equal(janRes.taxableIncome, 98992000);
+    assert.equal(janRes.pit, 20197600);
+    assert.equal(janRes.net, 94294400);
 
     const prevRes = TaxRules.calculateGrossToNet(120000000, makeParams('prev-2026', 0, 1));
-    assert.equal(prevRes.eeBHTN, 992000);
     assert.equal(prevRes.eeBHXH, 3744000);
+    assert.equal(prevRes.eeBHTN, 992000);
 });
 
-test('Net->Gross round trip for july-2026 and jan-2026', () => {
+test('Net->Gross round trip for july-2026, jan-2026, and prev-2026', () => {
     const nets = [5000000, 15000000, 25000000, 26215000, 60000000, 120000000];
 
-    for (const period of ['july-2026', 'jan-2026']) {
+    for (const period of ['july-2026', 'jan-2026', 'prev-2026']) {
         for (const deps of [0, 1, 2]) {
             const params = makeParams(period, deps);
             for (const net of nets) {
@@ -157,7 +174,19 @@ test('Net->Gross round trip for july-2026 and jan-2026', () => {
     const july30m = TaxRules.calculateNetToGross(26215000, makeParams('july-2026', 0));
     assert.ok(
         Math.abs(Math.round(july30m.gross) - 30000000) <= 1,
-        `Expected gross within 1 of 30000000, got ${july30m.gross}`
+        `Expected july-2026 gross within 1 of 30000000, got ${july30m.gross}`
+    );
+
+    const jan30m = TaxRules.calculateNetToGross(26215000, makeParams('jan-2026', 0));
+    assert.ok(
+        Math.abs(Math.round(jan30m.gross) - 30000000) <= 1,
+        `Expected jan-2026 gross within 1 of 30000000, got ${jan30m.gross}`
+    );
+
+    const prev30m = TaxRules.calculateNetToGross(25222500, makeParams('prev-2026', 0));
+    assert.ok(
+        Math.abs(Math.round(prev30m.gross) - 30000000) <= 1,
+        `Expected prev-2026 gross within 1 of 30000000, got ${prev30m.gross}`
     );
 });
 

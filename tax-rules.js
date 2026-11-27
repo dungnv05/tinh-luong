@@ -44,10 +44,10 @@
                 3: 4140000,
                 4: 3700000
             },
-            selfDeduction: 11000000,
-            dependentDeduction: 4400000,
-            pitSchedule: 'tt111-2013',
-            legalBasis: "NQ 954/2020/UBTVQH14 · Thông tư 111/2013/TT-BTC"
+            selfDeduction: 15500000,
+            dependentDeduction: 6200000,
+            pitSchedule: 'law109-2025',
+            legalBasis: "NQ 110/2025/UBTVQH15 · Luật Thuế TNCN 109/2025/QH15"
         },
         'prev-2026': {
             name: "Trước năm 2026",
