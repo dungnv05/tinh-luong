@@ -29,7 +29,7 @@ test('calculatePIT law109-2025 (5 brackets)', () => {
     const cases = [
         [0, 0],
         [10000000, 500000],
-        [10000001, 500000],
+        [10000100, 500010],
         [30000000, 2500000],
         [60000000, 8500000],
         [100000000, 20500000],
@@ -40,6 +40,10 @@ test('calculatePIT law109-2025 (5 brackets)', () => {
         const res = TaxRules.calculatePIT(taxable, brackets);
         assert.equal(res.steps.length, 5);
         assert.equal(Math.round(res.pit), expected, `taxable=${taxable}`);
+        if (taxable === 10000100) {
+            assert.equal(res.steps[1].active, true);
+            assert.equal(res.steps[0].taxable, 10000000);
+        }
     }
 });
 
@@ -49,6 +53,7 @@ test('calculatePIT tt111-2013 (7 brackets)', () => {
 
     const cases = [
         [5000000, 250000],
+        [5000100, 250010],
         [10000000, 750000],
         [18000000, 1950000],
         [32000000, 4750000],
@@ -61,6 +66,10 @@ test('calculatePIT tt111-2013 (7 brackets)', () => {
         const res = TaxRules.calculatePIT(taxable, brackets);
         assert.equal(res.steps.length, 7);
         assert.equal(Math.round(res.pit), expected, `taxable=${taxable}`);
+        if (taxable === 5000100) {
+            assert.equal(res.steps[1].active, true);
+            assert.equal(res.steps[0].taxable, 5000000);
+        }
     }
 });
 
@@ -112,6 +121,16 @@ test('Insurance cap july-2026 at 80,000,000 gross', () => {
     const res = TaxRules.calculateGrossToNet(80000000, makeParams('july-2026', 0));
     // BHXH/BHYT base capped at 20 * 2,530,000 = 50,600,000 -> eeBHXH = 4,048,000
     assert.equal(res.eeBHXH, 4048000);
+});
+
+test('BHTN cap differs by period region minimum wage', () => {
+    const julyRes = TaxRules.calculateGrossToNet(120000000, makeParams('july-2026', 0, 1));
+    assert.equal(julyRes.eeBHTN, 1062000);
+    assert.equal(julyRes.eeBHXH, 4048000);
+
+    const prevRes = TaxRules.calculateGrossToNet(120000000, makeParams('prev-2026', 0, 1));
+    assert.equal(prevRes.eeBHTN, 992000);
+    assert.equal(prevRes.eeBHXH, 3744000);
 });
 
 test('Net->Gross round trip for july-2026 and jan-2026', () => {
