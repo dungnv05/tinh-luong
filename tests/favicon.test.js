@@ -54,7 +54,7 @@ test('HTML pages contain expected favicon links, theme-color metas, and no inlin
       `${page} <head> must contain dark theme-color meta`
     );
 
-    const allIconLinks = html.match(/<link\b[^>]*\brel="(?:[^"]*\s)?(?:shortcut\s+)?icon(?:\s[^"]*)?"[^>]*>/gi) || [];
+    const allIconLinks = html.match(/<link\b[^>]*\brel="(?:[^"]*\s)?(?:apple-touch-icon(?:-precomposed)?|mask-icon|(?:shortcut\s+)?icon)(?:\s[^"]*)?"[^>]*>/gi) || [];
     assert.equal(allIconLinks.length, 3, `${page} must have no other icon links besides the 3 expected ones`);
     assert.equal(
       countMatches(html, /rel="shortcut\s+icon"/gi),
@@ -122,11 +122,16 @@ test('favicon.ico contains 16, 32, 48 PNG frames and no trailing bytes', () => {
     sizes.push(width);
 
     assert.ok(dataOffset + dataSize <= buf.length, `ICO entry ${i} exceeds file length`);
+    assert.ok(dataSize >= 24, `ICO entry ${i} PNG payload too small for IHDR`);
     assert.deepEqual(
       buf.subarray(dataOffset, dataOffset + 8),
       PNG_SIGNATURE,
       `ICO entry ${i} must start with PNG signature`
     );
+    const ihdrWidth = buf.readUInt32BE(dataOffset + 16);
+    const ihdrHeight = buf.readUInt32BE(dataOffset + 20);
+    assert.equal(ihdrWidth, width, `ICO entry ${i} PNG IHDR width must match directory entry`);
+    assert.equal(ihdrHeight, height, `ICO entry ${i} PNG IHDR height must match directory entry`);
 
     if (dataOffset + dataSize > maxEnd) {
       maxEnd = dataOffset + dataSize;
