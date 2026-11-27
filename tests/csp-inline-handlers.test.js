@@ -120,7 +120,7 @@ test('app.js and vendor/*.js contain no inline-code or dynamic-eval patterns', (
     const vendorFiles = fs.existsSync(vendorDir)
         ? fs.readdirSync(vendorDir).filter((f) => f.endsWith('.js')).map((f) => path.join('vendor', f))
         : [];
-    const jsFiles = ['app.js', ...vendorFiles];
+    const jsFiles = ['app.js', 'tax-rules.js', ...vendorFiles];
 
     const forbiddenPatterns = [
         { label: 'inline on*= attribute in string/template', pattern: /\son[a-z]+\s*=\s*["'`]/i },
