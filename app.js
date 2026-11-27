@@ -53,11 +53,81 @@ let currentMode = 'gross-net'; // 'gross-net' or 'net-gross'
 let salaryChart = null;
 let calculationHistory = [];
 let lastCalculatedData = null;
+let handlersBound = false;
 
 // --- Initialize App ---
-document.addEventListener("DOMContentLoaded", () => {
+function bindEventHandlers() {
+    if (handlersBound) return;
+    handlersBound = true;
+
+    const tabGrossNet = document.getElementById("tab-gross-net");
+    if (tabGrossNet) {
+        tabGrossNet.addEventListener("click", () => switchMode("gross-net"));
+    }
+
+    const tabNetGross = document.getElementById("tab-net-gross");
+    if (tabNetGross) {
+        tabNetGross.addEventListener("click", () => switchMode("net-gross"));
+    }
+
+    const salaryForm = document.getElementById("salary-form");
+    if (salaryForm) {
+        salaryForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+            calculate();
+        });
+    }
+
+    const periodSelect = document.getElementById("period-select");
+    if (periodSelect) {
+        periodSelect.addEventListener("change", () => handlePeriodChange());
+    }
+
+    const regionSelect = document.getElementById("region-select");
+    if (regionSelect) {
+        regionSelect.addEventListener("change", () => handleRegionChange());
+    }
+
+    document.querySelectorAll(".btn-counter[data-delta]").forEach((btn) => {
+        const delta = parseInt(btn.dataset.delta, 10);
+        if (!isNaN(delta)) {
+            btn.addEventListener("click", () => adjustDependents(delta));
+        }
+    });
+
+    const actualInsuranceRadio = document.querySelector('input[name="insurance-type"][value="actual"]');
+    if (actualInsuranceRadio) {
+        actualInsuranceRadio.addEventListener("change", () => toggleCustomInsuranceInput(false));
+    }
+
+    const customInsuranceRadio = document.querySelector('input[name="insurance-type"][value="custom"]');
+    if (customInsuranceRadio) {
+        customInsuranceRadio.addEventListener("change", () => toggleCustomInsuranceInput(true));
+    }
+
+    const advancedHeader = document.querySelector(".advanced-settings-header");
+    if (advancedHeader) {
+        advancedHeader.addEventListener("click", () => toggleAdvancedSettings());
+    }
+
+    const exportPdfBtn = document.getElementById("btn-export-pdf");
+    if (exportPdfBtn) {
+        exportPdfBtn.addEventListener("click", () => exportPDF());
+    }
+
+    const clearHistoryBtn = document.querySelector(".btn-clear-history");
+    if (clearHistoryBtn) {
+        clearHistoryBtn.addEventListener("click", () => clearHistory());
+    }
+}
+
+function initApp() {
+    bindEventHandlers();
+
     // Lucide Icons
-    lucide.createIcons();
+    if (typeof lucide !== "undefined") {
+        lucide.createIcons();
+    }
 
     // Setup input formatters
     setupInputFormatting("salary-input");
@@ -88,7 +158,13 @@ document.addEventListener("DOMContentLoaded", () => {
             renderChart(lastCalculatedData);
         }
     });
-});
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initApp);
+} else {
+    initApp();
+}
 
 // --- UI Actions & Event Handlers ---
 
@@ -141,14 +217,26 @@ function switchMode(mode) {
 }
 
 function handlePeriodChange() {
-    const period = document.getElementById("period-select").value;
-    const config = REGULATIONS[period];
+    const periodSelect = document.getElementById("period-select");
+    if (!periodSelect) return;
+    const config = REGULATIONS[periodSelect.value];
+    if (!config) return;
 
-    // Update labels for region select
-    document.getElementById("region-1-val").textContent = formatVND(config.regions[1]);
-    document.getElementById("region-2-val").textContent = formatVND(config.regions[2]);
-    document.getElementById("region-3-val").textContent = formatVND(config.regions[3]);
-    document.getElementById("region-4-val").textContent = formatVND(config.regions[4]);
+    const regionLabels = { 1: "Vùng I", 2: "Vùng II", 3: "Vùng III", 4: "Vùng IV" };
+    const regionSelect = document.getElementById("region-select");
+
+    // Update labels for region select (<span> inside <option> is stripped by HTML parsers)
+    [1, 2, 3, 4].forEach((r) => {
+        const span = document.getElementById(`region-${r}-val`);
+        if (span) {
+            span.textContent = formatVND(config.regions[r]);
+        } else if (regionSelect) {
+            const opt = regionSelect.querySelector(`option[value="${r}"]`);
+            if (opt) {
+                opt.textContent = `${regionLabels[r]} (${formatVND(config.regions[r])})`;
+            }
+        }
+    });
 
     handleRegionChange();
 }
@@ -571,7 +659,24 @@ function exportPDF() {
 function loadHistory() {
     const stored = localStorage.getItem("salary_history");
     if (stored) {
-        calculationHistory = JSON.parse(stored);
+        try {
+            const parsed = JSON.parse(stored);
+            if (Array.isArray(parsed)) {
+                calculationHistory = parsed
+                    .filter((item) => item && typeof item === "object")
+                    .map((item) => ({
+                        mode: item.mode === "net-gross" ? "net-gross" : "gross-net",
+                        inputVal: Number(item.inputVal) || 0,
+                        netVal: Number(item.netVal) || 0,
+                        grossVal: Number(item.grossVal) || 0,
+                        timestamp: item.timestamp != null ? String(item.timestamp) : ""
+                    }));
+            } else {
+                calculationHistory = [];
+            }
+        } catch (e) {
+            calculationHistory = [];
+        }
     }
     renderHistoryList();
 }
@@ -702,32 +807,56 @@ function renderHistoryList() {
     listEl.innerHTML = "";
 
     if (calculationHistory.length === 0) {
-        listEl.innerHTML = `<div class="history-empty">Chưa có lịch sử tính toán nào.</div>`;
+        const emptyEl = document.createElement("div");
+        emptyEl.className = "history-empty";
+        emptyEl.textContent = "Chưa có lịch sử tính toán nào.";
+        listEl.appendChild(emptyEl);
         return;
     }
 
     calculationHistory.forEach((item, index) => {
         const itemEl = document.createElement("div");
         itemEl.className = "history-item";
-        itemEl.onclick = () => loadHistoryItem(index);
+        itemEl.addEventListener("click", () => loadHistoryItem(index));
 
         const isGrossToNet = item.mode === 'gross-net';
         const titleText = isGrossToNet ? 'Gross ➔ Net' : 'Net ➔ Gross';
         const inputFormatted = formatVND(item.inputVal);
         const resultFormatted = formatVND(isGrossToNet ? item.netVal : item.grossVal);
 
-        itemEl.innerHTML = `
-            <div class="history-item-left">
-                <span class="history-item-title">${titleText} (Nhập ${inputFormatted})</span>
-                <span class="history-item-subtitle">Vào lúc ${item.timestamp}</span>
-            </div>
-            <div class="history-item-right">
-                <span>${resultFormatted}</span>
-                <i data-lucide="chevron-right" class="history-item-arrow"></i>
-            </div>
-        `;
+        const leftEl = document.createElement("div");
+        leftEl.className = "history-item-left";
+
+        const titleEl = document.createElement("span");
+        titleEl.className = "history-item-title";
+        titleEl.textContent = `${titleText} (Nhập ${inputFormatted})`;
+
+        const subtitleEl = document.createElement("span");
+        subtitleEl.className = "history-item-subtitle";
+        subtitleEl.textContent = `Vào lúc ${item.timestamp}`;
+
+        leftEl.appendChild(titleEl);
+        leftEl.appendChild(subtitleEl);
+
+        const rightEl = document.createElement("div");
+        rightEl.className = "history-item-right";
+
+        const resultEl = document.createElement("span");
+        resultEl.textContent = resultFormatted;
+
+        const arrowEl = document.createElement("i");
+        arrowEl.setAttribute("data-lucide", "chevron-right");
+        arrowEl.className = "history-item-arrow";
+
+        rightEl.appendChild(resultEl);
+        rightEl.appendChild(arrowEl);
+
+        itemEl.appendChild(leftEl);
+        itemEl.appendChild(rightEl);
         listEl.appendChild(itemEl);
     });
 
-    lucide.createIcons();
+    if (typeof lucide !== "undefined") {
+        lucide.createIcons();
+    }
 }
