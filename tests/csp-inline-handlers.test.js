@@ -120,7 +120,7 @@ test('app.js and vendor/*.js contain no inline-code or dynamic-eval patterns', (
     const vendorFiles = fs.existsSync(vendorDir)
         ? fs.readdirSync(vendorDir).filter((f) => f.endsWith('.js')).map((f) => path.join('vendor', f))
         : [];
-    const jsFiles = ['app.js', ...vendorFiles];
+    const jsFiles = ['app.js', 'tax-rules.js', ...vendorFiles];
 
     const forbiddenPatterns = [
         { label: 'inline on*= attribute in string/template', pattern: /\son[a-z]+\s*=\s*["'`]/i },
@@ -154,4 +154,48 @@ test('vercel.json CSP script-src does not allow unsafe-inline or unsafe-hashes',
 
     assert.ok(!scriptSrc.includes("'unsafe-inline'"), "script-src must not contain 'unsafe-inline'");
     assert.ok(!scriptSrc.includes("'unsafe-hashes'"), "script-src must not contain 'unsafe-hashes'");
+});
+
+test('index.html loads tax-rules.js exactly once, as a classic script, before app.js', () => {
+    const htmlWithoutComments = indexHtml.replace(/<!--[\s\S]*?-->/g, '');
+    const scriptTagRegex = /<script\b([^>]*)>/gi;
+    const srcAttrRegex = /(?:^|\s)src\s*=\s*(?:"([^"]*)"|'([^']*)')/i;
+
+    const scripts = [];
+    let match;
+    while ((match = scriptTagRegex.exec(htmlWithoutComments)) !== null) {
+        const attrs = match[1];
+        const srcMatch = attrs.match(srcAttrRegex);
+        if (!srcMatch) continue;
+        const rawSrc = srcMatch[1] ?? srcMatch[2];
+        const normalizedSrc = rawSrc.replace(/^(?:\.\/|\/)/, '');
+        scripts.push({ tag: match[0], attrs, src: normalizedSrc });
+    }
+
+    const taxRulesScripts = scripts.filter((s) => s.src === 'tax-rules.js');
+    const appJsScripts = scripts.filter((s) => s.src === 'app.js');
+
+    assert.equal(taxRulesScripts.length, 1, 'Expected index.html to load tax-rules.js exactly once');
+    assert.equal(appJsScripts.length, 1, 'Expected index.html to load app.js exactly once');
+
+    const taxRulesIndex = scripts.findIndex((s) => s.src === 'tax-rules.js');
+    const appJsIndex = scripts.findIndex((s) => s.src === 'app.js');
+    assert.ok(taxRulesIndex < appJsIndex, 'Expected tax-rules.js to be loaded before app.js');
+
+    const taxRulesAttrs = taxRulesScripts[0].attrs;
+    assert.doesNotMatch(
+        taxRulesAttrs,
+        /(?:^|\s)type\s*=\s*["']?module["']?(?:\s|$)/i,
+        'tax-rules.js must be a classic script (no type="module")'
+    );
+    assert.doesNotMatch(
+        taxRulesAttrs,
+        /(?:^|\s)async(?:\s*=|\s|$)/i,
+        'tax-rules.js must not have async attribute'
+    );
+    assert.doesNotMatch(
+        taxRulesAttrs,
+        /(?:^|\s)defer(?:\s*=|\s|$)/i,
+        'tax-rules.js must not have defer attribute'
+    );
 });

@@ -1,52 +1,5 @@
 // --- Constants & Regulation Configuration ---
-const REGULATIONS = {
-    'july-2026': {
-        name: "Từ 01/07/2026 (Mới nhất)",
-        basicSalary: 2530000,
-        regions: {
-            1: 5310000,
-            2: 4730000,
-            3: 4140000,
-            4: 3700000
-        },
-        selfDeduction: 11000000,
-        dependentDeduction: 4400000
-    },
-    'jan-2026': {
-        name: "Từ 01/01/2026 - 30/06/2026",
-        basicSalary: 2340000,
-        regions: {
-            1: 5310000,
-            2: 4730000,
-            3: 4140000,
-            4: 3700000
-        },
-        selfDeduction: 11000000,
-        dependentDeduction: 4400000
-    },
-    'prev-2026': {
-        name: "Trước năm 2026",
-        basicSalary: 2340000,
-        regions: {
-            1: 4960000,
-            2: 4410000,
-            3: 3860000,
-            4: 3450000
-        },
-        selfDeduction: 11000000,
-        dependentDeduction: 4400000
-    }
-};
-
-const PIT_BRACKETS = [
-    { limit: 5000000, rate: 0.05, subtract: 0 },
-    { limit: 10000000, rate: 0.10, subtract: 250000 },
-    { limit: 18000000, rate: 0.15, subtract: 750000 },
-    { limit: 32000000, rate: 0.20, subtract: 1650000 },
-    { limit: 52000000, rate: 0.25, subtract: 3250000 },
-    { limit: 80000000, rate: 0.30, subtract: 5850000 },
-    { limit: Infinity, rate: 0.35, subtract: 9850000 }
-];
+const { formatVND } = TaxRules;
 
 // --- App State ---
 let currentMode = 'gross-net'; // 'gross-net' or 'net-gross'
@@ -186,10 +139,6 @@ function parseFormattedNumber(val) {
     return parseFloat(val.replace(/,/g, "")) || 0;
 }
 
-function formatVND(amount) {
-    return Math.round(amount).toLocaleString("vi-VN") + "đ";
-}
-
 function switchMode(mode) {
     currentMode = mode;
 
@@ -219,7 +168,7 @@ function switchMode(mode) {
 function handlePeriodChange() {
     const periodSelect = document.getElementById("period-select");
     if (!periodSelect) return;
-    const config = REGULATIONS[periodSelect.value];
+    const config = TaxRules.REGULATIONS[periodSelect.value];
     if (!config) return;
 
     const regionLabels = { 1: "Vùng I", 2: "Vùng II", 3: "Vùng III", 4: "Vùng IV" };
@@ -238,7 +187,18 @@ function handlePeriodChange() {
         }
     });
 
+    const deductionHint = document.getElementById("deduction-hint");
+    if (deductionHint) {
+        const brackets = TaxRules.PIT_SCHEDULES[config.pitSchedule];
+        const bracketCount = brackets ? brackets.length : 0;
+        deductionHint.textContent = `Giảm trừ gia cảnh: ${formatVND(config.selfDeduction)} bản thân + ${formatVND(config.dependentDeduction)}/người phụ thuộc · Biểu thuế ${bracketCount} bậc (${config.legalBasis}).`;
+    }
+
     handleRegionChange();
+
+    if (lastCalculatedData) {
+        calculate();
+    }
 }
 
 function handleRegionChange() {
@@ -274,144 +234,6 @@ function toggleAdvancedSettings() {
     }
 }
 
-// --- Calculation Algorithms ---
-
-/**
- * Calculates Net from a given Gross salary and parameters.
- */
-function calculateGrossToNet(gross, params) {
-    const {
-        basicSalary,
-        regionMinWage,
-        dependents,
-        insuranceType,
-        customInsuranceSalary,
-        rates
-    } = params;
-
-    // 1. Determine base salary for insurances
-    let baseInsuranceEE = gross;
-    let baseInsuranceER = gross;
-
-    if (insuranceType === 'custom') {
-        baseInsuranceEE = customInsuranceSalary;
-        baseInsuranceER = customInsuranceSalary;
-    }
-
-    // Cap for BHXH, BHYT: 20 times reference salary
-    const capBHXH_BHYT = 20 * basicSalary;
-    // Cap for BHTN: 20 times regional minimum wage
-    const capBHTN = 20 * regionMinWage;
-
-    // Employee insurances
-    const eeBHXH = Math.min(baseInsuranceEE, capBHXH_BHYT) * (rates.eeBHXH / 100);
-    const eeBHYT = Math.min(baseInsuranceEE, capBHXH_BHYT) * (rates.eeBHYT / 100);
-    const eeBHTN = Math.min(baseInsuranceEE, capBHTN) * (rates.eeBHTN / 100);
-    const totalInsuranceEE = eeBHXH + eeBHYT + eeBHTN;
-
-    // Employer insurances
-    const erBHXH = Math.min(baseInsuranceER, capBHXH_BHYT) * (rates.erBHXH / 100);
-    const erBHYT = Math.min(baseInsuranceER, capBHXH_BHYT) * (rates.erBHYT / 100);
-    const erBHTN = Math.min(baseInsuranceER, capBHTN) * (rates.erBHTN / 100);
-    const totalInsuranceER = erBHXH + erBHYT + erBHTN;
-
-    // 2. Taxable Income
-    const incomeBeforeTax = gross - totalInsuranceEE;
-
-    // Deductions
-    const selfDeduct = REGULATIONS[document.getElementById("period-select").value].selfDeduction;
-    const depDeduct = REGULATIONS[document.getElementById("period-select").value].dependentDeduction * dependents;
-    const totalDeductions = selfDeduct + depDeduct;
-
-    // Converted Taxable Income
-    const taxableIncome = Math.max(0, incomeBeforeTax - totalDeductions);
-
-    // 3. PIT calculation & steps breakdown
-    let remainingTaxable = taxableIncome;
-    let pit = 0;
-    const pitSteps = [];
-
-    const brackets = [
-        { min: 0, max: 5000000, rate: 0.05 },
-        { min: 5000000, max: 10000000, rate: 0.10 },
-        { min: 10000000, max: 18000000, rate: 0.15 },
-        { min: 18000000, max: 32000000, rate: 0.20 },
-        { min: 32000000, max: 52000000, rate: 0.25 },
-        { min: 52000000, max: 80000000, rate: 0.30 },
-        { min: 80000000, max: Infinity, rate: 0.35 }
-    ];
-
-    brackets.forEach((b, index) => {
-        let taxInThisBracket = 0;
-        let taxableInBracket = 0;
-
-        if (taxableIncome > b.min) {
-            taxableInBracket = Math.min(taxableIncome, b.max) - b.min;
-            taxInThisBracket = taxableInBracket * b.rate;
-            pit += taxInThisBracket;
-        }
-
-        pitSteps.push({
-            bracket: index + 1,
-            range: `${formatVND(b.min)} - ${b.max === Infinity ? 'Trở lên' : formatVND(b.max)}`,
-            rate: `${b.rate * 100}%`,
-            taxable: taxableInBracket,
-            tax: taxInThisBracket,
-            active: taxableInBracket > 0
-        });
-    });
-
-    const net = gross - totalInsuranceEE - pit;
-    const totalEmployerCost = gross + totalInsuranceER;
-
-    return {
-        gross,
-        net,
-        eeBHXH,
-        eeBHYT,
-        eeBHTN,
-        totalInsuranceEE,
-        incomeBeforeTax,
-        selfDeduct,
-        depDeduct,
-        totalDeductions,
-        taxableIncome,
-        pit,
-        pitSteps,
-        erBHXH,
-        erBHYT,
-        erBHTN,
-        totalInsuranceER,
-        totalEmployerCost
-    };
-}
-
-/**
- * Binary search to convert Net to Gross salary.
- */
-function calculateNetToGross(netTarget, params) {
-    let lower = netTarget;
-    // Set a safe upper bound: Net target plus high potential taxes and insurance
-    let upper = Math.max(netTarget * 3, 10000000);
-    let grossSolution = netTarget;
-
-    // Run binary search
-    for (let i = 0; i < 40; i++) {
-        const mid = (lower + upper) / 2;
-        const res = calculateGrossToNet(mid, params);
-
-        if (res.net > netTarget) {
-            upper = mid;
-        } else {
-            lower = mid;
-            grossSolution = mid;
-        }
-    }
-
-    // Final precise calculation
-    return calculateGrossToNet(grossSolution, params);
-}
-
 // --- Main Controller ---
 
 function calculate() {
@@ -438,23 +260,19 @@ function calculate() {
         erBHTN: parseFloat(document.getElementById("rate-er-bhtn").value) || 0
     };
 
-    const config = REGULATIONS[period];
-    const regionMinWage = config.regions[region];
-
-    const params = {
-        basicSalary: config.basicSalary,
-        regionMinWage,
+    const params = TaxRules.buildParams(period, {
+        region,
         dependents,
         insuranceType,
         customInsuranceSalary,
         rates
-    };
+    });
 
     let result = null;
     if (currentMode === 'gross-net') {
-        result = calculateGrossToNet(salaryVal, params);
+        result = TaxRules.calculateGrossToNet(salaryVal, params);
     } else {
-        result = calculateNetToGross(salaryVal, params);
+        result = TaxRules.calculateNetToGross(salaryVal, params);
     }
 
     lastCalculatedData = result;
@@ -514,7 +332,7 @@ function renderResults(res) {
 
     // Render PIT steps
     const pitStepsContainer = document.getElementById("pit-steps-container");
-    pitStepsContainer.innerHTML = "";
+    pitStepsContainer.textContent = "";
 
     let hasTax = false;
     res.pitSteps.forEach(step => {
@@ -522,20 +340,42 @@ function renderResults(res) {
             hasTax = true;
             const item = document.createElement("div");
             item.className = `pit-step-item ${step.tax > 0 ? 'active' : ''}`;
-            item.innerHTML = `
-                <span class="pit-step-title">Bậc ${step.bracket} (${step.range})</span>
-                <div>
-                    <span class="pit-step-rate">${step.rate}</span> trên 
-                    <span class="pit-step-amount">${formatVND(step.taxable)}</span> &rarr; 
-                    <strong>${formatVND(step.tax)}</strong>
-                </div>
-            `;
+
+            const titleSpan = document.createElement("span");
+            titleSpan.className = "pit-step-title";
+            titleSpan.textContent = `Bậc ${step.bracket} (${step.range})`;
+
+            const detailDiv = document.createElement("div");
+
+            const rateSpan = document.createElement("span");
+            rateSpan.className = "pit-step-rate";
+            rateSpan.textContent = step.rate;
+
+            const amountSpan = document.createElement("span");
+            amountSpan.className = "pit-step-amount";
+            amountSpan.textContent = formatVND(step.taxable);
+
+            const taxStrong = document.createElement("strong");
+            taxStrong.textContent = formatVND(step.tax);
+
+            detailDiv.appendChild(rateSpan);
+            detailDiv.appendChild(document.createTextNode(" trên "));
+            detailDiv.appendChild(amountSpan);
+            detailDiv.appendChild(document.createTextNode(" \u2192 "));
+            detailDiv.appendChild(taxStrong);
+
+            item.appendChild(titleSpan);
+            item.appendChild(detailDiv);
             pitStepsContainer.appendChild(item);
         }
     });
 
     if (!hasTax) {
-        pitStepsContainer.innerHTML = `<div class="history-empty" style="padding: 1rem 0;">Thu nhập chưa đến mức đóng thuế TNCN.</div>`;
+        const emptyEl = document.createElement("div");
+        emptyEl.className = "history-empty";
+        emptyEl.style.padding = "1rem 0";
+        emptyEl.textContent = "Thu nhập chưa đến mức đóng thuế TNCN.";
+        pitStepsContainer.appendChild(emptyEl);
     }
 
     // Render chart
