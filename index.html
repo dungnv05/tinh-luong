@@ -42,15 +42,15 @@
                 </div>
 
                 <div class="tab-container">
-                    <button id="tab-gross-net" class="tab-btn active" onclick="switchMode('gross-net')">
+                    <button id="tab-gross-net" class="tab-btn active">
                         <i data-lucide="arrow-right-left"></i> Gross &rarr; Net
                     </button>
-                    <button id="tab-net-gross" class="tab-btn" onclick="switchMode('net-gross')">
+                    <button id="tab-net-gross" class="tab-btn">
                         <i data-lucide="arrow-right-left"></i> Net &rarr; Gross
                     </button>
                 </div>
 
-                <form id="salary-form" onsubmit="event.preventDefault(); calculate();">
+                <form id="salary-form">
                     <!-- Income Input -->
                     <div class="input-group">
                         <label for="salary-input" id="salary-label">Lương Gross (VND)</label>
@@ -64,7 +64,7 @@
                     <div class="input-group">
                         <label for="period-select">Thời điểm áp dụng</label>
                         <div class="select-wrapper">
-                            <select id="period-select" onchange="handlePeriodChange()">
+                            <select id="period-select">
                                 <option value="july-2026" selected>Từ 01/07/2026 (Lương cơ sở 2.530.000đ)</option>
                                 <option value="jan-2026">Từ 01/01/2026 - 30/06/2026 (Lương cơ sở 2.340.000đ)</option>
                                 <option value="prev-2026">Trước năm 2026 (Lương cơ sở 2.340.000đ, tối thiểu vùng cũ)</option>
@@ -77,7 +77,7 @@
                     <div class="input-group">
                         <label for="region-select">Vùng lương tối thiểu</label>
                         <div class="select-wrapper">
-                            <select id="region-select" onchange="handleRegionChange()">
+                            <select id="region-select">
                                 <option value="1">Vùng I (<span id="region-1-val">5.310.000đ</span>)</option>
                                 <option value="2">Vùng II (<span id="region-2-val">4.730.000đ</span>)</option>
                                 <option value="3">Vùng III (<span id="region-3-val">4.140.000đ</span>)</option>
@@ -92,9 +92,9 @@
                     <div class="input-group">
                         <label for="dependents-input">Số người phụ thuộc</label>
                         <div class="counter-wrapper">
-                            <button type="button" class="btn-counter" onclick="adjustDependents(-1)">-</button>
+                            <button type="button" class="btn-counter" data-delta="-1">-</button>
                             <input type="number" id="dependents-input" min="0" value="0">
-                            <button type="button" class="btn-counter" onclick="adjustDependents(1)">+</button>
+                            <button type="button" class="btn-counter" data-delta="1">+</button>
                         </div>
                         <p class="input-hint">Giảm trừ gia cảnh: 11.000.000đ bản thân + 4.400.000đ/người phụ thuộc.</p>
                     </div>
@@ -104,12 +104,12 @@
                         <label>Đóng bảo hiểm dựa trên</label>
                         <div class="radio-group">
                             <label class="radio-label">
-                                <input type="radio" name="insurance-type" value="actual" checked onchange="toggleCustomInsuranceInput(false)">
+                                <input type="radio" name="insurance-type" value="actual" checked>
                                 <span class="radio-custom"></span>
                                 Trên lương thực tế
                             </label>
                             <label class="radio-label">
-                                <input type="radio" name="insurance-type" value="custom" onchange="toggleCustomInsuranceInput(true)">
+                                <input type="radio" name="insurance-type" value="custom">
                                 <span class="radio-custom"></span>
                                 Mức lương khác
                             </label>
@@ -126,7 +126,7 @@
                     </div>
 
                     <!-- Advanced Settings Toggle -->
-                    <div class="advanced-settings-header" onclick="toggleAdvancedSettings()">
+                    <div class="advanced-settings-header">
                         <span><i data-lucide="settings-2"></i> Tỷ lệ đóng bảo hiểm (%)</span>
                         <i data-lucide="chevron-right" id="advanced-chevron"></i>
                     </div>
@@ -175,7 +175,7 @@
                 <div class="panel-header">
                     <h2 class="panel-title"><i data-lucide="file-text"></i> Kết quả chi tiết</h2>
                     <div class="result-actions">
-                        <button type="button" class="btn btn-outline" id="btn-export-pdf" onclick="exportPDF()" disabled>
+                        <button type="button" class="btn btn-outline" id="btn-export-pdf" disabled>
                             <i data-lucide="download"></i> PDF
                         </button>
                     </div>
@@ -320,7 +320,7 @@
         <section class="panel panel-history glass-card">
             <div class="panel-header-history">
                 <h3><i data-lucide="history"></i> Lịch sử tính toán</h3>
-                <button type="button" class="btn btn-clear-history" onclick="clearHistory()">Xóa tất cả</button>
+                <button type="button" class="btn btn-clear-history">Xóa tất cả</button>
             </div>
             <div class="history-list" id="history-list">
                 <!-- History items will be dynamically rendered here -->

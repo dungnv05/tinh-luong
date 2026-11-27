@@ -53,11 +53,81 @@ let currentMode = 'gross-net'; // 'gross-net' or 'net-gross'
 let salaryChart = null;
 let calculationHistory = [];
 let lastCalculatedData = null;
+let handlersBound = false;
 
 // --- Initialize App ---
-document.addEventListener("DOMContentLoaded", () => {
+function bindEventHandlers() {
+    if (handlersBound) return;
+    handlersBound = true;
+
+    const tabGrossNet = document.getElementById("tab-gross-net");
+    if (tabGrossNet) {
+        tabGrossNet.addEventListener("click", () => switchMode("gross-net"));
+    }
+
+    const tabNetGross = document.getElementById("tab-net-gross");
+    if (tabNetGross) {
+        tabNetGross.addEventListener("click", () => switchMode("net-gross"));
+    }
+
+    const salaryForm = document.getElementById("salary-form");
+    if (salaryForm) {
+        salaryForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+            calculate();
+        });
+    }
+
+    const periodSelect = document.getElementById("period-select");
+    if (periodSelect) {
+        periodSelect.addEventListener("change", () => handlePeriodChange());
+    }
+
+    const regionSelect = document.getElementById("region-select");
+    if (regionSelect) {
+        regionSelect.addEventListener("change", () => handleRegionChange());
+    }
+
+    document.querySelectorAll(".btn-counter[data-delta]").forEach((btn) => {
+        const delta = parseInt(btn.dataset.delta, 10);
+        if (!isNaN(delta)) {
+            btn.addEventListener("click", () => adjustDependents(delta));
+        }
+    });
+
+    const actualInsuranceRadio = document.querySelector('input[name="insurance-type"][value="actual"]');
+    if (actualInsuranceRadio) {
+        actualInsuranceRadio.addEventListener("change", () => toggleCustomInsuranceInput(false));
+    }
+
+    const customInsuranceRadio = document.querySelector('input[name="insurance-type"][value="custom"]');
+    if (customInsuranceRadio) {
+        customInsuranceRadio.addEventListener("change", () => toggleCustomInsuranceInput(true));
+    }
+
+    const advancedHeader = document.querySelector(".advanced-settings-header");
+    if (advancedHeader) {
+        advancedHeader.addEventListener("click", () => toggleAdvancedSettings());
+    }
+
+    const exportPdfBtn = document.getElementById("btn-export-pdf");
+    if (exportPdfBtn) {
+        exportPdfBtn.addEventListener("click", () => exportPDF());
+    }
+
+    const clearHistoryBtn = document.querySelector(".btn-clear-history");
+    if (clearHistoryBtn) {
+        clearHistoryBtn.addEventListener("click", () => clearHistory());
+    }
+}
+
+function initApp() {
+    bindEventHandlers();
+
     // Lucide Icons
-    lucide.createIcons();
+    if (typeof lucide !== "undefined") {
+        lucide.createIcons();
+    }
 
     // Setup input formatters
     setupInputFormatting("salary-input");
@@ -88,7 +158,13 @@ document.addEventListener("DOMContentLoaded", () => {
             renderChart(lastCalculatedData);
         }
     });
-});
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initApp);
+} else {
+    initApp();
+}
 
 // --- UI Actions & Event Handlers ---
 
@@ -141,14 +217,26 @@ function switchMode(mode) {
 }
 
 function handlePeriodChange() {
-    const period = document.getElementById("period-select").value;
-    const config = REGULATIONS[period];
+    const periodSelect = document.getElementById("period-select");
+    if (!periodSelect) return;
+    const config = REGULATIONS[periodSelect.value];
+    if (!config) return;
 
-    // Update labels for region select
-    document.getElementById("region-1-val").textContent = formatVND(config.regions[1]);
-    document.getElementById("region-2-val").textContent = formatVND(config.regions[2]);
-    document.getElementById("region-3-val").textContent = formatVND(config.regions[3]);
-    document.getElementById("region-4-val").textContent = formatVND(config.regions[4]);
+    const regionLabels = { 1: "Vùng I", 2: "Vùng II", 3: "Vùng III", 4: "Vùng IV" };
+    const regionSelect = document.getElementById("region-select");
+
+    // Update labels for region select (<span> inside <option> is stripped by HTML parsers)
+    [1, 2, 3, 4].forEach((r) => {
+        const span = document.getElementById(`region-${r}-val`);
+        if (span) {
+            span.textContent = formatVND(config.regions[r]);
+        } else if (regionSelect) {
+            const opt = regionSelect.querySelector(`option[value="${r}"]`);
+            if (opt) {
+                opt.textContent = `${regionLabels[r]} (${formatVND(config.regions[r])})`;
+            }
+        }
+    });
 
     handleRegionChange();
 }
@@ -709,7 +797,7 @@ function renderHistoryList() {
     calculationHistory.forEach((item, index) => {
         const itemEl = document.createElement("div");
         itemEl.className = "history-item";
-        itemEl.onclick = () => loadHistoryItem(index);
+        itemEl.addEventListener("click", () => loadHistoryItem(index));
 
         const isGrossToNet = item.mode === 'gross-net';
         const titleText = isGrossToNet ? 'Gross ➔ Net' : 'Net ➔ Gross';
@@ -729,5 +817,7 @@ function renderHistoryList() {
         listEl.appendChild(itemEl);
     });
 
-    lucide.createIcons();
+    if (typeof lucide !== "undefined") {
+        lucide.createIcons();
+    }
 }
